@@ -1,10 +1,9 @@
 
-
-
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
 import { Project, Domain, BM, HistoryEntry, Partnership, App, Profile, Page, AdAccount, View, DomainViewMode } from './types';
+import { GoogleGenAI } from "@google/genai";
 
 import { countryList } from './data/countries';
 import { languageList } from './data/languages';
@@ -238,6 +237,13 @@ const translations = {
         areYouSureDeletePage: "Tem certeza que deseja excluir esta página?",
         entityPage: "Página",
         pageIdExistsError: "Já existe uma página com este ID do Facebook.",
+        addPagesBulk: "Adicionar Páginas em Lote",
+        addPagesBulkDescription: "Edite os nomes transcritos e adicione o ID do Facebook para cada página.",
+        bulkSaveError: "Algumas páginas não puderam ser salvas. Por favor, revise os erros abaixo.",
+        saveAll: "Salvar Todas",
+        saving: "Salvando...",
+        transcribing: "Transcrevendo imagem...",
+        uploadImage: "Carregar Imagem",
     },
     en: {
         projects: "Projects",
@@ -450,6 +456,13 @@ const translations = {
         areYouSureDeletePage: "Are you sure you want to delete this page?",
         entityPage: "Page",
         pageIdExistsError: "A page with this Facebook ID already exists.",
+        addPagesBulk: "Add Pages in Bulk",
+        addPagesBulkDescription: "Edit the transcribed names and add the Facebook ID for each page.",
+        bulkSaveError: "Some pages could not be saved. Please review the errors below.",
+        saveAll: "Save All",
+        saving: "Saving...",
+        transcribing: "Transcribing image...",
+        uploadImage: "Upload Image",
     },
     es: {
         projects: "Proyectos",
@@ -662,6 +675,13 @@ const translations = {
         areYouSureDeletePage: "¿Estás seguro de que quieres eliminar esta página?",
         entityPage: "Página",
         pageIdExistsError: "Ya existe una página con este ID de Facebook.",
+        addPagesBulk: "Añadir Páginas en Lote",
+        addPagesBulkDescription: "Edita los nombres transcritos y añade el ID de Facebook para cada página.",
+        bulkSaveError: "Algunas páginas no se pudieron guardar. Por favor, revisa los errores a continuación.",
+        saveAll: "Guardar Todas",
+        saving: "Guardando...",
+        transcribing: "Transcribiendo imagen...",
+        uploadImage: "Subir Imagen",
     }
 };
 
@@ -691,7 +711,7 @@ const App: React.FC = () => {
     const partnerships = useLiveQuery(() => db.partnerships.toArray(), []);
     const history = useLiveQuery(() => db.history.orderBy('timestamp').reverse().toArray(), []);
 
-
+    const ai = useMemo(() => new GoogleGenAI({ apiKey: process.env.API_KEY as string }), []);
     const t = translations[language];
     
     const logHistory = useCallback(async (entry: Omit<HistoryEntry, 'id' | 'timestamp'>) => {
@@ -724,7 +744,7 @@ const App: React.FC = () => {
         setLanguage(lang);
     };
 
-    const handleLogin = (username: string, password) => {
+    const handleLogin = (username: string, password: string) => {
         if (username === 'Admin' && password === 'admin') {
             sessionStorage.setItem('isAuthenticated', 'true');
             setIsAuthenticated(true);
@@ -900,6 +920,84 @@ const App: React.FC = () => {
         return Promise.resolve();
     };
 
+    const transcribePageNamesFromImage = async (base64Image: string): Promise<string[]> => {
+        try {
+            const imagePart = {
+                inlineData: {
+                    mimeType: 'image/jpeg',
+                    data: base64Image.split(',')[1],
+                },
+            };
+            const textPart = {
+                text: "Extract the list of page names from this image. Return only a valid JSON array of strings. For example: [\"Page Name 1\", \"Page Name 2\"]. If no names are found, return an empty array.",
+            };
+    
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: { parts: [imagePart, textPart] },
+            });
+    
+            const rawText = response.text;
+            const jsonText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const names = JSON.parse(jsonText);
+            
+            if (Array.isArray(names) && names.every(item => typeof item === 'string')) {
+                return names;
+            }
+            return [];
+        } catch (error) {
+            console.error("Error transcribing image:", error);
+            return [];
+        }
+    };
+    
+    const handleBulkSavePages = async (pagesToSave: { name: string, facebookId: string }[]) => {
+        const errors: { facebookId: string, message: string }[] = [];
+        const pagesToAdd: Page[] = [];
+    
+        // FIX: Cast `db` to `any` to access the `transaction` method from the base Dexie class.
+        // This is necessary due to a type inference issue with the `ProjectHubDB` subclass.
+        await (db as any).transaction('rw', db.pages, async () => {
+            const existingFbIds = await db.pages.where('facebookId').anyOf(pagesToSave.map(p => p.facebookId)).primaryKeys();
+            const existingFbIdSet = new Set(existingFbIds);
+            const fbIdsInCurrentBatch = new Set<string>();
+    
+            for (const pageData of pagesToSave) {
+                if (!pageData.facebookId.trim()) continue;
+    
+                if (existingFbIdSet.has(pageData.facebookId)) {
+                    errors.push({ facebookId: pageData.facebookId, message: t.pageIdExistsError });
+                    continue;
+                }
+                if (fbIdsInCurrentBatch.has(pageData.facebookId)) {
+                     errors.push({ facebookId: pageData.facebookId, message: t.pageIdExistsError });
+                     continue;
+                }
+    
+                fbIdsInCurrentBatch.add(pageData.facebookId);
+                pagesToAdd.push({
+                    id: crypto.randomUUID(),
+                    name: pageData.name,
+                    facebookId: pageData.facebookId,
+                    provider: '',
+                    profileIds: [],
+                });
+            }
+    
+            if (pagesToAdd.length > 0) {
+                await db.pages.bulkAdd(pagesToAdd);
+                for (const page of pagesToAdd) {
+                    await logHistory({ entityType: 'Page', entityName: page.name, action: 'Create' });
+                }
+            }
+        });
+    
+        return {
+            success: errors.length === 0,
+            errors,
+        };
+    };
+
     const handleDeletePage = async (page: Page) => {
         await db.pages.delete(page.id);
         logHistory({ entityType: 'Page', entityName: page.name, action: 'Delete' });
@@ -1019,6 +1117,8 @@ const App: React.FC = () => {
                             pages={pages || []}
                             onSavePage={handleSavePage}
                             onDeletePage={handleDeletePage}
+                            onTranscribeImage={transcribePageNamesFromImage}
+                            onBulkSavePages={handleBulkSavePages}
                         />;
             case 'bms':
                 return <BMsView

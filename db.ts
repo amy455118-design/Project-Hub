@@ -1,5 +1,4 @@
 
-
 import Dexie, { Table } from 'dexie';
 import { Project, Domain, Profile, Page, BM, AdAccount, App, HistoryEntry, Partnership, ProfileRole, ProfileStatus, AccountStatus } from './types';
 
@@ -218,24 +217,32 @@ export class ProjectHubDB extends Dexie {
             history: 'id, timestamp'
         }).upgrade(async (tx) => {
             await tx.table('profiles').toCollection().modify(p => {
-                p.facebookId = '';
-                p.purchaseDate = new Date();
+                p.facebookId = p.facebookId || '';
+                p.purchaseDate = p.purchaseDate || new Date();
                 p.supplier = p.provider || '';
                 p.price = p.cost || 0;
-                p.status = 'Stock' as ProfileStatus;
-                // Correctly migrate old role or set a default
-                const oldRole = (p.role as string)?.toLowerCase();
-                if (oldRole === 'bot') {
-                    p.role = ProfileRole.Advertiser; // Fix potential data inconsistency from old enum
-                } else if (oldRole === 'backup') {
-                    p.role = ProfileRole.Backup;
-                } else {
-                    p.role = ProfileRole.Advertiser;
+                p.status = p.status || 'Stock' as ProfileStatus;
+                
+                // FIX: Correctly and safely migrate the 'role' field. This logic checks if
+                // the existing role is already valid. If not, it attempts to map old string
+                // values to the new enum, defaulting to 'Advertiser' only when necessary to
+                // prevent data loss and corruption.
+                const validRoles = Object.values(ProfileRole);
+                if (!p.role || !validRoles.includes(p.role as ProfileRole)) {
+                     let finalRole = ProfileRole.Advertiser; // Default
+                    if (typeof p.role === 'string' && p.role.trim()) {
+                        const lowerCaseRole = p.role.toLowerCase();
+                        if (lowerCaseRole === 'contingency') finalRole = ProfileRole.Contingency;
+                        else if (lowerCaseRole === 'bot') finalRole = ProfileRole.Bot;
+                        else if (lowerCaseRole === 'backup') finalRole = ProfileRole.Backup;
+                    }
+                    p.role = finalRole;
                 }
-                p.securityKeys = [];
-                p.emails = [];
-                p.accountStatus = 'OK' as AccountStatus;
-                p.driveLink = '';
+
+                p.securityKeys = p.securityKeys || [];
+                p.emails = p.emails || [];
+                p.accountStatus = p.accountStatus || 'OK' as AccountStatus;
+                p.driveLink = p.driveLink || '';
 
                 delete p.provider;
                 delete p.cost;
