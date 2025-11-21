@@ -27,7 +27,7 @@ export const AddProfilesBulkModal: React.FC<AddProfilesBulkModalProps> = ({ isOp
             setProfiles(initialProfiles.map(p => ({
                 ...p,
                 localId: crypto.randomUUID(),
-                email: p.email || (p.emails && p.emails.length > 0 ? p.emails[0] : '') || '',
+                email: (p as any).email || (p.emails && p.emails.length > 0 ? p.emails[0] : '') || '',
                 // Ensure other fields are present
                 name: p.name || '',
                 facebookId: p.facebookId || '',

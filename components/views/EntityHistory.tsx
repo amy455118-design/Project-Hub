@@ -1,7 +1,6 @@
 
-import React from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../db';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../../supabaseClient';
 import { HistoryEntry } from '../../types';
 import { HistoryIcon } from '../icons';
 
@@ -11,16 +10,46 @@ interface EntityHistoryProps {
 }
 
 export const EntityHistory: React.FC<EntityHistoryProps> = ({ t, entityTypes }) => {
-    const history = useLiveQuery(async () => {
-        // Fetch all matching entities
-        const items = await db.history
-            .where('entityType')
-            .anyOf(entityTypes)
-            .toArray();
-            
-        // Sort by timestamp descending (newest first)
-        return items.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-    }, [entityTypes]) || [];
+    const [history, setHistory] = useState<HistoryEntry[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchHistory = async () => {
+            // Supabase .in() filter
+            const { data, error } = await supabase
+                .from('history')
+                .select('*')
+                .in('entityType', entityTypes)
+                .order('timestamp', { ascending: false });
+
+            if (!error && data) {
+                // Convert timestamp strings to Date objects
+                const parsedData = data.map(d => ({
+                    ...d,
+                    timestamp: new Date(d.timestamp)
+                }));
+                setHistory(parsedData);
+            }
+            setLoading(false);
+        };
+
+        fetchHistory();
+
+        // Subscribe to realtime updates for history table
+        const subscription = supabase
+            .channel(`public:history:${entityTypes.join('_')}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'history' }, (payload) => {
+                const newEntry = payload.new as HistoryEntry;
+                if (entityTypes.includes(newEntry.entityType)) {
+                    setHistory(prev => [{ ...newEntry, timestamp: new Date(newEntry.timestamp) }, ...prev]);
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(subscription);
+        };
+    }, [entityTypes]);
 
     const getActionColor = (action: HistoryEntry['action']) => {
         switch (action) {
@@ -32,6 +61,10 @@ export const EntityHistory: React.FC<EntityHistoryProps> = ({ t, entityTypes }) 
             default: return 'bg-latte-surface1 dark:bg-mocha-surface1';
         }
     };
+
+    if (loading) {
+        return <div className="p-4 text-center text-latte-subtext0 dark:text-mocha-subtext0">Loading history...</div>;
+    }
 
     return (
         <div className="bg-latte-crust dark:bg-mocha-crust p-4 rounded-xl shadow-md">

@@ -175,6 +175,7 @@ export const DomainsView: React.FC<DomainsViewProps> = ({ t, domains, partnershi
                                     <h3 className="text-xl font-semibold text-latte-subtext0 dark:text-mocha-subtext0 mb-3">{t.inactiveSubdomains}</h3>
                                     <DomainList
                                         domains={[]} // Not used for Subdomain-only display in this implementation block but required by TS
+                                        partnerships={partnerships}
                                         // We'll reuse the logic directly here or adapt DomainList to accept subdomains only?
                                         // Actually, `DomainList` expects `Domain[]`. The code block below handles subdomains manually.
                                         // Let's keep the manual table render for inactive subdomains as it was in the previous version.

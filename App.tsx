@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from './db';
-import { Project, Domain, BM, HistoryEntry, Partnership, App as AppData, Profile, Page, View, DomainViewMode, ProfileRole, Integration, ProfileStatus, AccountStatus } from './types';
+import { Project, Domain, BM, Partnership, App as AppData, Profile, Page, View, DomainViewMode, ProfileRole, Integration, ProfileStatus, AccountStatus } from './types';
 import { GoogleGenAI } from "@google/genai";
+
+// Supabase Imports
+import { useSupabase } from './hooks/useSupabase';
+import { projectApi, domainApi, bmApi, partnershipApi, profileApi, pageApi, integrationApi } from './api';
 
 import { LoginView } from './components/layout/LoginView';
 import { Sidebar } from './components/layout/Sidebar';
@@ -806,14 +808,14 @@ export const App: React.FC = () => {
     const [bmDetailViewType, setBmDetailViewType] = useState<'adAccounts' | 'apps'>('adAccounts');
     const [loginError, setLoginError] = useState('');
 
-    const projects = useLiveQuery(() => db.projects.toArray()) || [];
-    const domains = useLiveQuery(() => db.domains.toArray()) || [];
-    const bms = useLiveQuery(() => db.bms.toArray()) || [];
-    const partnerships = useLiveQuery(() => db.partnerships.toArray()) || [];
-    // const history = useLiveQuery(() => db.history.orderBy('timestamp').reverse().toArray()) || []; // REMOVED global history
-    const profiles = useLiveQuery(() => db.profiles.toArray()) || [];
-    const pages = useLiveQuery(() => db.pages.toArray()) || [];
-    const integrations = useLiveQuery(() => db.integrations.toArray()) || [];
+    // Data Fetching Hooks
+    const projects = useSupabase<Project>('projects');
+    const domains = useSupabase<Domain>('domains');
+    const bms = useSupabase<BM>('bms');
+    const partnerships = useSupabase<Partnership>('partnerships');
+    const profiles = useSupabase<Profile>('profiles');
+    const pages = useSupabase<Page>('pages');
+    const integrations = useSupabase<Integration>('integrations');
 
     const t = translations[language];
 
@@ -860,139 +862,55 @@ export const App: React.FC = () => {
         setIsLogoModalOpen(false);
     };
 
-    const addHistoryEntry = async (entry: Omit<HistoryEntry, 'id' | 'timestamp'>) => {
-        await db.history.add({
-            ...entry,
-            id: crypto.randomUUID(),
-            timestamp: new Date()
-        });
+    // --- Actions wrappers ---
+    const handleSaveProject = (data: any) => projectApi.save(data);
+    
+    const handleSaveDomain = (data: any) => domainApi.save(data);
+    const handleDeleteDomain = (data: any) => domainApi.delete(data);
+    const handleToggleDomainActive = (id: string, isActive: boolean) => {
+        const domain = domains.find(d => d.id === id);
+        domainApi.toggleActive(id, isActive, domain?.name || 'Unknown');
     };
-
-    const handleSaveProject = async (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
-        const now = new Date();
-        if (projectData.id) {
-            const existing = await db.projects.get(projectData.id);
-            await db.projects.put({ ...projectData, id: projectData.id, createdAt: existing?.createdAt || now, updatedAt: now });
-            addHistoryEntry({ entityType: 'Project', entityName: projectData.name, action: 'Update' });
-        } else {
-            await db.projects.add({ ...projectData, id: crypto.randomUUID(), createdAt: now, updatedAt: now });
-            addHistoryEntry({ entityType: 'Project', entityName: projectData.name, action: 'Create' });
-        }
-    };
-
-    const handleSaveDomain = async (domainData: Omit<Domain, 'id' | 'isActive'> & { id?: string }) => {
-        if (domainData.id) {
-            await db.domains.update(domainData.id, domainData);
-            addHistoryEntry({ entityType: 'Domain', entityName: domainData.name, action: 'Update' });
-        } else {
-            await db.domains.add({ ...domainData, id: crypto.randomUUID(), isActive: true });
-            addHistoryEntry({ entityType: 'Domain', entityName: domainData.name, action: 'Create' });
-        }
-    };
-
-    const handleDeleteDomain = async (domain: Domain) => {
-        await db.domains.delete(domain.id);
-        addHistoryEntry({ entityType: 'Domain', entityName: domain.name, action: 'Delete' });
-    };
-
-    const handleToggleDomainActive = async (domainId: string, isActive: boolean) => {
-        await db.domains.update(domainId, { isActive });
-        const domain = domains.find(d => d.id === domainId);
-        addHistoryEntry({ entityType: 'Domain', entityName: domain?.name || 'Unknown', action: isActive ? 'Activate' : 'Deactivate' });
-    };
-
     const handleToggleSubdomainActive = async (domainId: string, subdomainId: string, isActive: boolean) => {
         const domain = domains.find(d => d.id === domainId);
         if (domain) {
             const updatedSubdomains = domain.subdomains.map(sub =>
                 sub.id === subdomainId ? { ...sub, isActive } : sub
             );
-            await db.domains.update(domainId, { subdomains: updatedSubdomains });
-            const subName = domain.subdomains.find(s => s.id === subdomainId)?.name;
-            addHistoryEntry({ entityType: 'Subdomain', entityName: subName || 'Unknown', action: isActive ? 'Activate' : 'Deactivate', details: `Parent: ${domain.name}` });
+            domainApi.updateSubdomains(domainId, updatedSubdomains, domain.name);
         }
     };
 
-    const handleSaveBm = async (bmData: Omit<BM, 'id'> & { id?: string }) => {
-        if (bmData.id) {
-            await db.bms.put(bmData as BM);
-            addHistoryEntry({ entityType: 'BM', entityName: bmData.name, action: 'Update' });
-        } else {
-            await db.bms.add({ ...bmData, id: crypto.randomUUID() } as BM);
-            addHistoryEntry({ entityType: 'BM', entityName: bmData.name, action: 'Create' });
-        }
-    };
-
-    const handleDeleteBm = async (bm: BM) => {
-        await db.bms.delete(bm.id);
-        addHistoryEntry({ entityType: 'BM', entityName: bm.name, action: 'Delete' });
-    };
+    const handleSaveBm = (data: any) => bmApi.save(data);
+    const handleDeleteBm = (data: any) => bmApi.delete(data);
     
     const handleSaveApp = async (app: AppData) => {
-        // Apps are nested within BMs in this data model
         const bm = bms.find(b => b.apps.some(a => a.id === app.id));
         if (bm) {
             const updatedApps = bm.apps.map(a => a.id === app.id ? app : a);
-            await db.bms.update(bm.id, { apps: updatedApps });
-            addHistoryEntry({ entityType: 'App', entityName: app.name, action: 'Update', details: `BM: ${bm.name}` });
+            bmApi.updateApps(bm.id, updatedApps, bm.name);
         }
     };
 
-    const handleSavePartnership = async (pData: Omit<Partnership, 'id'> & { id?: string }) => {
-         if (pData.id) {
-            await db.partnerships.put(pData as Partnership);
-            addHistoryEntry({ entityType: 'Partnership', entityName: pData.name, action: 'Update' });
-        } else {
-            await db.partnerships.add({ ...pData, id: crypto.randomUUID() } as Partnership);
-            addHistoryEntry({ entityType: 'Partnership', entityName: pData.name, action: 'Create' });
-        }
-    };
-
-    const handleDeletePartnership = async (p: Partnership) => {
-        await db.partnerships.delete(p.id);
-        addHistoryEntry({ entityType: 'Partnership', entityName: p.name, action: 'Delete' });
-    };
+    const handleSavePartnership = (data: any) => partnershipApi.save(data);
+    const handleDeletePartnership = (data: any) => partnershipApi.delete(data);
 
     const handleSaveProfile = async (profileData: Omit<Profile, 'id'> & { id?: string }) => {
-        await (db as any).transaction('rw', db.profiles, db.pages, async () => {
-            let profileId = profileData.id;
-            const oldPageIds = profileId ? (await db.profiles.get(profileId))?.pageIds || [] : [];
-            
-            if (profileId) {
-                await db.profiles.put({ ...profileData, id: profileId } as Profile);
-                addHistoryEntry({ entityType: 'Profile', entityName: profileData.name, action: 'Update' });
-            } else {
-                profileId = crypto.randomUUID();
-                await db.profiles.add({ ...profileData, id: profileId } as Profile);
-                addHistoryEntry({ entityType: 'Profile', entityName: profileData.name, action: 'Create' });
-            }
-
-            // Sync Pages
-            const newPageIds = profileData.pageIds || [];
-            const addedPageIds = newPageIds.filter(id => !oldPageIds.includes(id));
-            const removedPageIds = oldPageIds.filter(id => !newPageIds.includes(id));
-
-            if (addedPageIds.length > 0) {
-                 await db.pages.where('id').anyOf(addedPageIds).modify(page => {
-                     if (!page.profileIds) page.profileIds = [];
-                     if (!page.profileIds.includes(profileId!)) page.profileIds.push(profileId!);
-                 });
-            }
-            if (removedPageIds.length > 0) {
-                await db.pages.where('id').anyOf(removedPageIds).modify(page => {
-                    if (page.profileIds) {
-                        page.profileIds = page.profileIds.filter(id => id !== profileId);
-                    }
-                });
-            }
-        });
+        const oldProfile = profiles.find(p => p.id === profileData.id);
+        await profileApi.save(profileData, oldProfile?.pageIds || []);
     };
+    const handleDeleteProfile = (data: any) => profileApi.delete(data);
 
-    const handleDeleteProfile = async (profile: Profile) => {
-        await db.profiles.delete(profile.id);
-        addHistoryEntry({ entityType: 'Profile', entityName: profile.name, action: 'Delete' });
+    const handleSavePage = async (pageData: Omit<Page, 'id' | 'provider'> & { id?: string }) => {
+        const oldPage = pages.find(p => p.id === pageData.id);
+        await pageApi.save(pageData, oldPage?.profileIds || []);
     };
+    const handleDeletePage = (data: any) => pageApi.delete(data);
 
+    const handleSaveIntegration = (data: any) => integrationApi.save(data);
+    const handleDeleteIntegration = (data: any) => integrationApi.delete(data);
+
+    // --- AI Handlers ---
     const parseProfilesFromFiles = async (files: File[]): Promise<Partial<Profile>[]> => {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         
@@ -1039,21 +957,17 @@ export const App: React.FC = () => {
 
     const handleBulkSaveProfiles = async (profilesToSave: Partial<Profile>[]): Promise<{ success: boolean; errors: { facebookId: string, message: string }[] }> => {
         const errors: { facebookId: string, message: string }[] = [];
-        const validProfiles: Profile[] = [];
+        const validProfiles: any[] = [];
         const seenIds = new Set<string>();
 
         // 1. Validate within the batch
         for (const p of profilesToSave) {
             const fbId = p.facebookId || '';
-            if (!fbId) {
-                 // Should have been caught by modal validation, but safety check
-                 continue; 
-            }
+            if (!fbId) continue; 
             if (seenIds.has(fbId)) {
                 errors.push({ facebookId: fbId, message: 'Duplicate in batch' });
             } else {
                 seenIds.add(fbId);
-                // Fix: Cast p to any to access email because it comes from bulk parsing and Partial<Profile> doesn't include it
                 const email = (p as any).email;
                  validProfiles.push({
                     id: crypto.randomUUID(),
@@ -1064,7 +978,7 @@ export const App: React.FC = () => {
                     emails: email ? [email] : [],
                     emailPassword: p.emailPassword || '',
                     recoveryEmail: p.recoveryEmail || '',
-                    purchaseDate: p.purchaseDate ? new Date(p.purchaseDate) : new Date(),
+                    purchaseDate: p.purchaseDate ? new Date(p.purchaseDate).toISOString() : new Date().toISOString(),
                     supplier: 'Bulk Import',
                     price: 0,
                     status: 'Stock' as ProfileStatus,
@@ -1079,78 +993,19 @@ export const App: React.FC = () => {
             }
         }
 
-        // 2. Validate against DB and Save
+        // 2. Save
         try {
-            await (db as any).transaction('rw', db.profiles, async () => {
-                for (const profile of validProfiles) {
-                    // Optional: Check for duplicate FB IDs in DB if that's a constraint
-                    // const existing = await db.profiles.where('facebookId').equals(profile.facebookId).count();
-                    // if (existing > 0) { ... }
-                    
-                    await db.profiles.add(profile);
-                    addHistoryEntry({ entityType: 'Profile', entityName: profile.name, action: 'Create', details: 'Bulk Import' });
-                }
-            });
-        } catch (err) {
-             console.error("Bulk profile save transaction failed", err);
-             return { success: false, errors: [{ facebookId: 'ALL', message: 'Transaction failed' }] };
+            await profileApi.bulkSave(validProfiles);
+        } catch (err: any) {
+             console.error("Bulk profile save failed", err);
+             return { success: false, errors: [{ facebookId: 'ALL', message: err.message || 'Save failed' }] };
         }
 
         return { success: errors.length === 0, errors };
     };
 
-    // --- Page Logic ---
-
-    const handleSavePage = async (pageData: Omit<Page, 'id' | 'provider'> & { id?: string }) => {
-         // Check for duplicate Facebook ID (excluding current page)
-        const existingPage = await db.pages.where('facebookId').equals(pageData.facebookId).first();
-        if (existingPage && existingPage.id !== pageData.id) {
-            throw new Error(t.pageIdExistsError);
-        }
-
-        await (db as any).transaction('rw', db.pages, db.profiles, async () => {
-             let pageId = pageData.id;
-             const oldProfileIds = pageId ? (await db.pages.get(pageId))?.profileIds || [] : [];
-
-             if (pageId) {
-                 const existing = await db.pages.get(pageId);
-                 await db.pages.put({ ...existing, ...pageData } as Page);
-                 addHistoryEntry({ entityType: 'Page', entityName: pageData.name, action: 'Update' });
-             } else {
-                 pageId = crypto.randomUUID();
-                 await db.pages.add({ ...pageData, id: pageId, provider: 'Manual', profileIds: pageData.profileIds || [] } as Page);
-                 addHistoryEntry({ entityType: 'Page', entityName: pageData.name, action: 'Create' });
-             }
-
-             // Sync Profiles
-             const newProfileIds = pageData.profileIds || [];
-             const addedProfileIds = newProfileIds.filter(id => !oldProfileIds.includes(id));
-             const removedProfileIds = oldProfileIds.filter(id => !newProfileIds.includes(id));
-
-             if (addedProfileIds.length > 0) {
-                 await db.profiles.where('id').anyOf(addedProfileIds).modify(profile => {
-                     if (!profile.pageIds) profile.pageIds = [];
-                     if (!profile.pageIds.includes(pageId!)) profile.pageIds.push(pageId!);
-                 });
-             }
-             if (removedProfileIds.length > 0) {
-                 await db.profiles.where('id').anyOf(removedProfileIds).modify(profile => {
-                     if (profile.pageIds) {
-                         profile.pageIds = profile.pageIds.filter(id => id !== pageId);
-                     }
-                 });
-             }
-        });
-    };
-
-    const handleDeletePage = async (page: Page) => {
-        await db.pages.delete(page.id);
-        addHistoryEntry({ entityType: 'Page', entityName: page.name, action: 'Delete' });
-    };
-
     const transcribePageNamesFromImage = async (base64Image: string): Promise<string[]> => {
         try {
-             // Remove data URL prefix to get raw base64
             const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
             const mimeType = base64Image.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)?.[1] || 'image/png';
 
@@ -1159,26 +1014,15 @@ export const App: React.FC = () => {
                 model: 'gemini-2.5-flash',
                 contents: {
                     parts: [
-                        {
-                            inlineData: {
-                                mimeType: mimeType,
-                                data: base64Data
-                            }
-                        },
-                        {
-                            text: "List all the names of Facebook pages visible in this image. Return only a valid JSON array of strings, e.g., [\"Page Name 1\", \"Page Name 2\"]. Do not include markdown formatting."
-                        }
+                        { inlineData: { mimeType: mimeType, data: base64Data } },
+                        { text: "List all the names of Facebook pages visible in this image. Return only a valid JSON array of strings, e.g., [\"Page Name 1\", \"Page Name 2\"]. Do not include markdown formatting." }
                     ]
                 },
-                 config: {
-                    responseMimeType: "application/json"
-                }
+                 config: { responseMimeType: "application/json" }
             });
 
             const text = response.text;
             if (!text) return [];
-            
-            // Double check to clean up potential markdown code blocks just in case
             const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(cleanText);
 
@@ -1190,13 +1034,12 @@ export const App: React.FC = () => {
 
     const handleBulkSavePages = async (pagesToSave: { name: string, facebookId: string }[]): Promise<{ success: boolean; errors: { facebookId: string, message: string }[] }> => {
         const errors: { facebookId: string, message: string }[] = [];
-        const validPages: Page[] = [];
+        const validPages: any[] = [];
         const seenIds = new Set<string>();
 
-        // 1. Validate within the batch
         for (const p of pagesToSave) {
             if (seenIds.has(p.facebookId)) {
-                errors.push({ facebookId: p.facebookId, message: t.pageIdExistsError }); // Duplicate in batch
+                errors.push({ facebookId: p.facebookId, message: t.pageIdExistsError });
             } else {
                 seenIds.add(p.facebookId);
                  validPages.push({
@@ -1209,49 +1052,19 @@ export const App: React.FC = () => {
             }
         }
 
-        // 2. Validate against DB and Save
         try {
-            await (db as any).transaction('rw', db.pages, async () => {
-                for (const page of validPages) {
-                    const existing = await db.pages.where('facebookId').equals(page.facebookId).count();
-                    if (existing > 0) {
-                        errors.push({ facebookId: page.facebookId, message: t.pageIdExistsError });
-                    } else {
-                        await db.pages.add(page);
-                         addHistoryEntry({ entityType: 'Page', entityName: page.name, action: 'Create', details: 'Bulk Import' });
-                    }
-                }
-            });
-        } catch (err) {
-             console.error("Bulk save transaction failed", err);
-             return { success: false, errors: [{ facebookId: 'ALL', message: 'Transaction failed' }] };
+            await pageApi.bulkSave(validPages);
+        } catch (err: any) {
+             console.error("Bulk save failed", err);
+             return { success: false, errors: [{ facebookId: 'ALL', message: err.message }] };
         }
 
         return { success: errors.length === 0, errors };
     };
 
-    // --- Integration Logic ---
-    const handleSaveIntegration = async (integrationData: Omit<Integration, 'id'> & { id?: string }) => {
-        if (integrationData.id) {
-            await db.integrations.put(integrationData as Integration);
-            addHistoryEntry({ entityType: 'Integration', entityName: integrationData.name, action: 'Update' });
-        } else {
-            await db.integrations.add({ ...integrationData, id: crypto.randomUUID() } as Integration);
-            addHistoryEntry({ entityType: 'Integration', entityName: integrationData.name, action: 'Create' });
-        }
-    };
-
-    const handleDeleteIntegration = async (integration: Integration) => {
-        await db.integrations.delete(integration.id);
-        addHistoryEntry({ entityType: 'Integration', entityName: integration.name, action: 'Delete' });
-    };
-
-
     // Helper functions
     const getCountryName = (code: string) => {
-        const country = countryList.find(c => c.en === code || c.pt === code || c.es === code); // Simplified match
-        // In reality, we should store codes and lookup. Assuming names are stored for now as per existing data.
-        // Or assume input is English name and map to current language.
+        const country = countryList.find(c => c.en === code || c.pt === code || c.es === code);
         if (!country) return code;
         return country[language as keyof typeof country] || code;
     };
@@ -1294,7 +1107,6 @@ export const App: React.FC = () => {
             case 'configuration':
                 return <ConfigurationView t={t} integrations={integrations} onSaveIntegration={handleSaveIntegration} onDeleteIntegration={handleDeleteIntegration} />;
             case 'history':
-                // History View is now integrated into individual sections, but route is kept just in case for now or handled as dashboard redirect
                 return <DashboardView t={t} />;
             case 'dashboard':
             default:
