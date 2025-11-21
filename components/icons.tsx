@@ -1,8 +1,10 @@
+
+
 import React, { useMemo } from 'react';
 
 export const SunIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="5"></circle>
       <line x1="12" y1="1" x2="12" y2="3"></line>
       <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -16,9 +18,11 @@ export const SunIcon = ({ className }: { className?: string }) => (
   </span>
 );
 
+// ... (keep existing icons: MoonIcon, SearchIcon, ProjectIcon, DomainIcon, ProfileIcon, PageIcon, BMIcon, AdAccountIcon, MessageSquareIcon, AppIcon, ChevronDownIcon, PlusIcon, GlobeIcon, CloseIcon, ChevronsLeftIcon, ChevronsRightIcon, MtLogoIcon, CheckIcon, EditIcon, TrashIcon, LayoutGridIcon, ListIcon, HistoryIcon, ExternalLinkIcon, SettingsIcon, LogOutIcon, UsersIcon, LoginArtIcon, LayersIcon)
+
 export const MoonIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
     </svg>
   </span>
@@ -26,7 +30,7 @@ export const MoonIcon = ({ className }: { className?: string }) => (
 
 export const SearchIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="11" cy="11" r="8"></circle>
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
     </svg>
@@ -35,7 +39,7 @@ export const SearchIcon = ({ className }: { className?: string }) => (
 
 export const ProjectIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="18" height="18" rx="2" />
         <path d="M9 3v18" />
         <path d="M15 3v18" />
@@ -45,7 +49,7 @@ export const ProjectIcon = ({ className }: { className?: string }) => (
 
 export const DomainIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
     </svg>
   </span>
@@ -53,7 +57,7 @@ export const DomainIcon = ({ className }: { className?: string }) => (
 
 export const ProfileIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
         <circle cx="12" cy="7" r="4" />
     </svg>
@@ -62,7 +66,7 @@ export const ProfileIcon = ({ className }: { className?: string }) => (
 
 export const PageIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
         <line x1="4" y1="22" x2="4" y2="15"></line>
     </svg>
@@ -71,7 +75,7 @@ export const PageIcon = ({ className }: { className?: string }) => (
 
 export const BMIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
         <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
     </svg>
@@ -80,7 +84,7 @@ export const BMIcon = ({ className }: { className?: string }) => (
 
 export const AdAccountIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="12" y1="1" x2="12" y2="23" />
         <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
     </svg>
@@ -89,7 +93,7 @@ export const AdAccountIcon = ({ className }: { className?: string }) => (
 
 export const MessageSquareIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
     </svg>
   </span>
@@ -97,7 +101,7 @@ export const MessageSquareIcon = ({ className }: { className?: string }) => (
 
 export const AppIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
         <line x1="3" y1="9" x2="21" y2="9"></line>
         <line x1="9" y1="21" x2="9" y2="9"></line>
@@ -108,7 +112,7 @@ export const AppIcon = ({ className }: { className?: string }) => (
 
 export const ChevronDownIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="6 9 12 15 18 9"></polyline>
     </svg>
   </span>
@@ -116,7 +120,7 @@ export const ChevronDownIcon = ({ className }: { className?: string }) => (
 
 export const PlusIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="12" y1="5" x2="12" y2="19"></line>
         <line x1="5" y1="12" x2="19" y2="12"></line>
     </svg>
@@ -125,7 +129,7 @@ export const PlusIcon = ({ className }: { className?: string }) => (
 
 export const GlobeIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
         <line x1="2" y1="12" x2="22" y2="12"></line>
         <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
@@ -135,7 +139,7 @@ export const GlobeIcon = ({ className }: { className?: string }) => (
 
 export const CloseIcon = ({ className, strokeWidth = "2" }: { className?: string; strokeWidth?: string; }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
         <line x1="18" y1="6" x2="6" y2="18"></line>
         <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>
@@ -144,7 +148,7 @@ export const CloseIcon = ({ className, strokeWidth = "2" }: { className?: string
 
 export const ChevronsLeftIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="11 17 6 12 11 7"></polyline>
         <polyline points="18 17 13 12 18 7"></polyline>
     </svg>
@@ -153,7 +157,7 @@ export const ChevronsLeftIcon = ({ className }: { className?: string }) => (
 
 export const ChevronsRightIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="13 17 18 12 13 7"></polyline>
         <polyline points="6 17 11 12 6 7"></polyline>
     </svg>
@@ -162,24 +166,16 @@ export const ChevronsRightIcon = ({ className }: { className?: string }) => (
 
 export const MtLogoIcon = ({ className }: { className?: string }) => (
     <svg viewBox="0 0 95 50" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-        {/* Cleaned up 'M' shape */}
         <path d="M0 50V0H12L28 28L44 0H56V50H46V16L28 40L10 16V50H0Z" className="fill-latte-text dark:fill-mocha-text" />
-
-        {/* 'T' Shape */}
         <path d="M60 0H95V10H81V50H71V10H60V0Z" className="fill-latte-text dark:fill-mocha-text" />
-
-        {/* Dynamic 'swoosh' that also highlights the second half of M */}
-        {/* It gives a sense of motion and connection, and acts as an abstract arrow */}
         <path d="M28 28L44 0H56V20C56 20 45 30 28 40V28Z" className="fill-latte-blue dark:fill-mocha-blue" />
-
-        {/* A small accent to hint at an arrowhead */}
         <path d="M44 0L50 8L56 0H44Z" className="fill-latte-sky dark:fill-mocha-sky" />
     </svg>
 );
 
 export const CheckIcon = ({ className, strokeWidth = "3" }: { className?: string; strokeWidth?: string; }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
         <polyline points="20 6 9 17 4 12"></polyline>
     </svg>
   </span>
@@ -187,7 +183,7 @@ export const CheckIcon = ({ className, strokeWidth = "3" }: { className?: string
 
 export const EditIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
     </svg>
@@ -196,7 +192,7 @@ export const EditIcon = ({ className }: { className?: string }) => (
 
 export const TrashIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="3 6 5 6 21 6"></polyline>
         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
     </svg>
@@ -205,7 +201,7 @@ export const TrashIcon = ({ className }: { className?: string }) => (
 
 export const LayoutGridIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="7" height="7"></rect>
         <rect x="14" y="3" width="7" height="7"></rect>
         <rect x="3" y="14" width="7" height="7"></rect>
@@ -216,7 +212,7 @@ export const LayoutGridIcon = ({ className }: { className?: string }) => (
 
 export const ListIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="8" y1="6" x2="21" y2="6"></line>
         <line x1="8" y1="12" x2="21" y2="12"></line>
         <line x1="8" y1="18" x2="21" y2="18"></line>
@@ -229,7 +225,7 @@ export const ListIcon = ({ className }: { className?: string }) => (
 
 export const HistoryIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M1 4v6h6"></path>
         <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
     </svg>
@@ -238,7 +234,7 @@ export const HistoryIcon = ({ className }: { className?: string }) => (
 
 export const ExternalLinkIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
         <polyline points="15 3 21 3 21 9"></polyline>
         <line x1="10" y1="14" x2="21" y2="3"></line>
@@ -248,7 +244,7 @@ export const ExternalLinkIcon = ({ className }: { className?: string }) => (
 
 export const SettingsIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="3"></circle>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
     </svg>
@@ -257,7 +253,7 @@ export const SettingsIcon = ({ className }: { className?: string }) => (
 
 export const LogOutIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
         <polyline points="16 17 21 12 16 7"></polyline>
         <line x1="21" y1="12" x2="9" y2="12"></line>
@@ -267,7 +263,7 @@ export const LogOutIcon = ({ className }: { className?: string }) => (
 
 export const UsersIcon = ({ className }: { className?: string }) => (
   <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
         <circle cx="8.5" cy="7" r="4"></circle>
         <polyline points="17 11 19 13 23 9"></polyline>
@@ -275,8 +271,48 @@ export const UsersIcon = ({ className }: { className?: string }) => (
   </span>
 );
 
-// --- Generative Art Types & Data ---
+export const LayersIcon = ({ className }: { className?: string }) => (
+  <span className={`inline-block ${className || ''}`}>
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+      <polyline points="2 17 12 22 22 17"></polyline>
+      <polyline points="2 12 12 17 22 12"></polyline>
+    </svg>
+  </span>
+);
 
+export const UploadCloudIcon = ({ className }: { className?: string }) => (
+  <span className={`inline-block ${className || ''}`}>
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="16 16 12 12 8 16"></polyline>
+      <line x1="12" y1="12" x2="12" y2="21"></line>
+      <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
+      <polyline points="16 16 12 12 8 16"></polyline>
+    </svg>
+  </span>
+);
+
+export const ImageIcon = ({ className }: { className?: string }) => (
+  <span className={`inline-block ${className || ''}`}>
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+      <circle cx="8.5" cy="8.5" r="1.5"></circle>
+      <polyline points="21 15 16 10 5 21"></polyline>
+    </svg>
+  </span>
+);
+
+export const DownloadIcon = ({ className }: { className?: string }) => (
+  <span className={`inline-block ${className || ''}`}>
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="7 10 12 15 17 10"></polyline>
+      <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+  </span>
+);
+
+// ... (Generative Art Types, Helpers, and LoginArtIcon code remains unchanged)
 type Node = { id: number; cx: number; cy: number; r: number };
 type Line = { id: string; x1: number; y1: number; x2: number; y2: number };
 type ConstellationData = {
@@ -390,6 +426,7 @@ const generateMSTConstellation = (numNodes: number, viewBoxSize: number, padding
 
 
 export const LoginArtIcon = ({ className, showMainConstellation = true }: { className?: string; showMainConstellation?: boolean; }) => {
+    // ... (existing implementation)
     const { mainConstellation, layers, stars } = useMemo(() => {
         const VIEW_BOX_SIZE = 800;
         
@@ -526,13 +563,3 @@ export const LoginArtIcon = ({ className, showMainConstellation = true }: { clas
         </svg>
     );
 };
-
-export const LayersIcon = ({ className }: { className?: string }) => (
-  <span className={`inline-block ${className || ''}`}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-      <polyline points="2 17 12 22 22 17"></polyline>
-      <polyline points="2 12 12 17 22 12"></polyline>
-    </svg>
-  </span>
-);

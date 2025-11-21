@@ -1,21 +1,35 @@
 
-import React, { useState } from 'react';
-import { Profile } from '../../types';
-import { PlusIcon, EditIcon, TrashIcon, ProfileIcon, ExternalLinkIcon } from '../icons';
+import React, { useState, useRef } from 'react';
+import { Profile, Page } from '../../types';
+import { PlusIcon, EditIcon, TrashIcon, ProfileIcon, ExternalLinkIcon, UploadCloudIcon, DownloadIcon } from '../icons';
 import { AddProfileModal } from '../modals/AddProfileModal';
+import { AddProfilesBulkModal } from '../modals/AddProfilesBulkModal';
 import { ConfirmDeleteModal } from '../ui/ConfirmDeleteModal';
+import { Checkbox } from '../ui/Checkbox';
+import { EntityHistory } from './EntityHistory';
 
 interface ProfilesViewProps {
     t: any;
     profiles: Profile[];
+    pages: Page[];
     onSaveProfile: (profileData: Omit<Profile, 'id'> & { id?: string }) => void;
     onDeleteProfile: (profile: Profile) => void;
+    onParseProfiles: (files: File[]) => Promise<Partial<Profile>[]>;
+    onBulkSaveProfiles: (profiles: Partial<Profile>[]) => Promise<{ success: boolean; errors: { facebookId: string, message: string }[] }>;
 }
 
-export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, onSaveProfile, onDeleteProfile }) => {
+export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, onSaveProfile, onDeleteProfile, onParseProfiles, onBulkSaveProfiles }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
     const [profileToDelete, setProfileToDelete] = useState<Profile | null>(null);
+    
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+    const [parsedProfiles, setParsedProfiles] = useState<Partial<Profile>[]>([]);
+    const [isParsing, setIsParsing] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const [selectedProfileIds, setSelectedProfileIds] = useState<Set<string>>(new Set());
+    const [activeTab, setActiveTab] = useState<'list' | 'history'>('list');
 
     const handleSave = (profileData: Omit<Profile, 'id'> & { id?: string }) => {
         onSaveProfile(profileData);
@@ -39,6 +53,92 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, onSaveP
             setProfileToDelete(null);
         }
     };
+    
+    const handleBulkUploadClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            setIsParsing(true);
+            const files = Array.from(e.target.files);
+            const extractedProfiles = await onParseProfiles(files);
+            setParsedProfiles(extractedProfiles);
+            setIsParsing(false);
+            setIsBulkModalOpen(true);
+            // Reset input
+            e.target.value = ''; 
+        }
+    };
+    
+    const handleBulkSave = async (profilesToSave: Partial<Profile>[]) => {
+        const result = await onBulkSaveProfiles(profilesToSave);
+        return result;
+    };
+
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedProfileIds(new Set(profiles.map(p => p.id)));
+        } else {
+            setSelectedProfileIds(new Set());
+        }
+    };
+
+    const handleSelectProfile = (id: string, checked: boolean) => {
+        const newSelected = new Set(selectedProfileIds);
+        if (checked) {
+            newSelected.add(id);
+        } else {
+            newSelected.delete(id);
+        }
+        setSelectedProfileIds(newSelected);
+    };
+
+    const handleExport = () => {
+        const selectedProfiles = profiles.filter(p => selectedProfileIds.has(p.id));
+        if (selectedProfiles.length === 0) return;
+
+        const separator = "******************************************************************************";
+        
+        const content = selectedProfiles.map(p => {
+            const email = p.emails && p.emails.length > 0 ? p.emails[0] : '';
+            const username = p.facebookId || email;
+
+            return [
+                `name=${p.name}`,
+                `remark=${p.supplier}`,
+                `tab=`,
+                `platform=facebook.com`,
+                `username=${username}`,
+                `password=${p.facebookPassword || ''}`,
+                `fakey=${p.twoFactorCode || ''}`,
+                `cookie=`,
+                `proxytype=noproxy`,
+                `ipchecker=`,
+                `proxy=`,
+                `proxyurl=`,
+                `ip=`,
+                `countrycode=`,
+                `regioncode=`,
+                `citycode=`,
+                `proxyid=`,
+                `ua=`,
+                `resolution=`
+            ].join('\n');
+        }).join(`\n${separator}\n`);
+        
+        const finalContent = `${content}\n\n${separator}\nWhen importing, please delete this line and all content above it.`;
+
+        const blob = new Blob([finalContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'adspower_import.txt';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -60,70 +160,150 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, onSaveP
         }
     };
 
+    const pageOptions = pages.map(p => ({ value: p.id, label: p.name }));
+
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-latte-text dark:text-mocha-text">{t.profiles}</h1>
-                <button onClick={handleAddClick} className="flex items-center space-x-2 bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">
-                    <PlusIcon className="w-5 h-5" />
-                    <span>{t.addProfile}</span>
+                <div className="flex space-x-2">
+                    {selectedProfileIds.size > 0 && (
+                        <button
+                            onClick={handleExport}
+                            className="flex items-center space-x-2 bg-latte-teal text-white dark:bg-mocha-teal dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                        >
+                            <DownloadIcon className="w-5 h-5" />
+                            <span>{t.exportToAdsPower} ({selectedProfileIds.size})</span>
+                        </button>
+                    )}
+
+                    <button 
+                        onClick={handleBulkUploadClick} 
+                        disabled={isParsing}
+                        className="flex items-center space-x-2 bg-latte-sky text-white dark:bg-mocha-sky dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+                    >
+                        {isParsing ? (
+                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                            <UploadCloudIcon className="w-5 h-5" />
+                        )}
+                        <span>{isParsing ? t.parsingProfiles : t.addProfilesBulk}</span>
+                    </button>
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleFileChange} 
+                        className="hidden" 
+                        multiple 
+                        accept=".txt" 
+                    />
+                    
+                    <button onClick={handleAddClick} className="flex items-center space-x-2 bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">
+                        <PlusIcon className="w-5 h-5" />
+                        <span>{t.addProfile}</span>
+                    </button>
+                </div>
+            </div>
+
+            <div className="flex space-x-1 bg-latte-surface0 dark:bg-mocha-surface0 p-1 rounded-lg w-fit mb-6">
+                <button
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'list' ? 'bg-white dark:bg-mocha-surface2 shadow-sm text-latte-text dark:text-mocha-text' : 'text-latte-subtext0 dark:text-mocha-subtext0 hover:text-latte-text dark:hover:text-mocha-text'}`}
+                    onClick={() => setActiveTab('list')}
+                >
+                    {t.list}
+                </button>
+                <button
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'history' ? 'bg-white dark:bg-mocha-surface2 shadow-sm text-latte-text dark:text-mocha-text' : 'text-latte-subtext0 dark:text-mocha-subtext0 hover:text-latte-text dark:hover:text-mocha-text'}`}
+                    onClick={() => setActiveTab('history')}
+                >
+                    {t.history}
                 </button>
             </div>
-            <div className="bg-latte-crust dark:bg-mocha-crust p-4 rounded-xl shadow-md">
-                {profiles.length === 0 ? (
-                    <div className="text-center py-12">
-                        <ProfileIcon className="w-16 h-16 mx-auto text-latte-overlay1 dark:text-mocha-overlay1 mb-4" />
-                        <p className="text-lg text-latte-subtext0 dark:text-mocha-subtext0">{t.noProfiles}</p>
+
+            {activeTab === 'list' ? (
+                profiles.length === 0 ? (
+                    <div className="bg-latte-crust dark:bg-mocha-crust p-4 rounded-xl shadow-md">
+                        <div className="text-center py-12">
+                            <ProfileIcon className="w-16 h-16 mx-auto text-latte-overlay1 dark:text-mocha-overlay1 mb-4" />
+                            <p className="text-lg text-latte-subtext0 dark:text-mocha-subtext0">{t.noProfiles}</p>
+                        </div>
                     </div>
                 ) : (
-                    <table className="w-full text-left">
-                        <thead className="border-b-2 border-latte-surface1 dark:border-mocha-surface1">
-                            <tr>
-                                <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.profileName}</th>
-                                <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.profileStatus}</th>
-                                <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.profileRole}</th>
-                                <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.supplier}</th>
-                                <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1 text-right">{t.actions}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {profiles.map((profile) => (
-                                <tr key={profile.id} className="border-b border-latte-surface0 dark:border-mocha-surface0 last:border-b-0 hover:bg-latte-surface0 dark:hover:bg-mocha-surface0">
-                                    <td className="p-4 font-medium">{profile.name}</td>
-                                    <td className="p-4">
-                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${getStatusColor(profile.status)}`}>
-                                            {t[`status${profile.status.replace(/\s/g, '')}`] || profile.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-4">
-                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${getRoleColor(profile.role)}`}>
-                                            {t[`role${profile.role}`] || profile.role}
-                                        </span>
-                                    </td>
-                                    <td className="p-4">{profile.supplier}</td>
-                                    <td className="p-4 text-right">
-                                        <div className="flex items-center justify-end space-x-1">
-                                             {profile.driveLink && (
-                                                <a href={profile.driveLink} target="_blank" rel="noopener noreferrer" className="p-2 rounded-md hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-latte-green dark:text-mocha-green" aria-label={`Drive link for ${profile.name}`}>
-                                                    <ExternalLinkIcon className="w-5 h-5" />
-                                                </a>
-                                            )}
-                                            <button onClick={() => handleEditClick(profile)} className="p-2 rounded-md hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-latte-blue dark:text-mocha-blue"><EditIcon className="w-5 h-5" /></button>
-                                            <button onClick={() => setProfileToDelete(profile)} className="p-2 rounded-md hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-latte-red dark:text-mocha-red"><TrashIcon className="w-5 h-5" /></button>
-                                        </div>
-                                    </td>
+                    <div className="bg-latte-crust dark:bg-mocha-crust p-4 rounded-xl shadow-md">
+                        <table className="w-full text-left">
+                            <thead className="border-b-2 border-latte-surface1 dark:border-mocha-surface1">
+                                <tr>
+                                    <th className="p-4 w-10">
+                                        <Checkbox 
+                                            label="" 
+                                            checked={selectedProfileIds.size === profiles.length && profiles.length > 0} 
+                                            onChange={handleSelectAll} 
+                                        />
+                                    </th>
+                                    <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.profileName}</th>
+                                    <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.profileStatus}</th>
+                                    <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.profileRole}</th>
+                                    <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.supplier}</th>
+                                    <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1 text-right">{t.actions}</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
-            </div>
+                            </thead>
+                            <tbody>
+                                {profiles.map((profile) => (
+                                    <tr key={profile.id} className="border-b border-latte-surface0 dark:border-mocha-surface0 last:border-b-0 hover:bg-latte-surface0 dark:hover:bg-mocha-surface0">
+                                        <td className="p-4">
+                                            <Checkbox 
+                                                label="" 
+                                                checked={selectedProfileIds.has(profile.id)} 
+                                                onChange={(checked) => handleSelectProfile(profile.id, checked)} 
+                                            />
+                                        </td>
+                                        <td className="p-4 font-medium">{profile.name}</td>
+                                        <td className="p-4">
+                                            <span className={`px-2 py-1 text-xs font-bold rounded-full ${getStatusColor(profile.status)}`}>
+                                                {t[`status${profile.status.replace(/\s/g, '')}`] || profile.status}
+                                            </span>
+                                        </td>
+                                        <td className="p-4">
+                                            <span className={`px-2 py-1 text-xs font-bold rounded-full ${getRoleColor(profile.role)}`}>
+                                                {t[`role${profile.role}`] || profile.role}
+                                            </span>
+                                        </td>
+                                        <td className="p-4">{profile.supplier}</td>
+                                        <td className="p-4 text-right">
+                                            <div className="flex items-center justify-end space-x-1">
+                                                 {profile.driveLink && (
+                                                    <a href={profile.driveLink} target="_blank" rel="noopener noreferrer" className="p-2 rounded-md hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-latte-green dark:text-mocha-green" aria-label={`Drive link for ${profile.name}`}>
+                                                        <ExternalLinkIcon className="w-5 h-5" />
+                                                    </a>
+                                                )}
+                                                <button onClick={() => handleEditClick(profile)} className="p-2 rounded-md hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-latte-blue dark:text-mocha-blue"><EditIcon className="w-5 h-5" /></button>
+                                                <button onClick={() => setProfileToDelete(profile)} className="p-2 rounded-md hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-latte-red dark:text-mocha-red"><TrashIcon className="w-5 h-5" /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )
+            ) : (
+                <EntityHistory t={t} entityTypes={['Profile']} />
+            )}
+
             <AddProfileModal 
                 isOpen={isModalOpen} 
                 onClose={() => setIsModalOpen(false)} 
                 onSave={handleSave}
                 t={t} 
                 editingProfile={editingProfile}
+                pageOptions={pageOptions}
+            />
+            <AddProfilesBulkModal
+                isOpen={isBulkModalOpen}
+                onClose={() => setIsBulkModalOpen(false)}
+                onSave={handleBulkSave}
+                t={t}
+                initialProfiles={parsedProfiles}
             />
             <ConfirmDeleteModal
                 isOpen={!!profileToDelete}

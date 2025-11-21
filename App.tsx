@@ -1,12 +1,9 @@
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
-import { Project, Domain, BM, HistoryEntry, Partnership, App, Profile, Page, AdAccount, View, DomainViewMode } from './types';
+import { Project, Domain, BM, HistoryEntry, Partnership, App as AppData, Profile, Page, View, DomainViewMode, ProfileRole, Integration, ProfileStatus, AccountStatus } from './types';
 import { GoogleGenAI } from "@google/genai";
-
-import { countryList } from './data/countries';
-import { languageList } from './data/languages';
 
 import { LoginView } from './components/layout/LoginView';
 import { Sidebar } from './components/layout/Sidebar';
@@ -19,10 +16,12 @@ import { DomainsView } from './components/views/DomainsView';
 import { BMsView } from './components/views/BMsView';
 import { ChatbotsView } from './components/views/ChatbotsView';
 import { PartnershipsView } from './components/views/PartnershipsView';
-import { HistoryView } from './components/views/HistoryView';
 import { ProfilesView } from './components/views/ProfilesView';
 import { PagesView } from './components/views/PagesView';
+import { ConfigurationView } from './components/views/ConfigurationView';
 
+import { countryList } from './data/countries';
+import { languageList } from './data/languages';
 
 // Localization
 const translations = {
@@ -36,6 +35,7 @@ const translations = {
         chatbots: "Chatbots",
         apps: "Aplicativos",
         history: "Histórico",
+        list: "Lista",
         search: "Pesquisar tudo...",
         addProject: "Adicionar Projeto",
         editProject: "Editar Projeto",
@@ -86,10 +86,10 @@ const translations = {
         accessVerification: "Verificação de Acesso",
         itProviderVerified: "Verificado como Provedor de TI",
         areYouSureDeleteBm: "Tem certeza que deseja excluir este BM?",
-        activeDomains: "Domínios Ativos",
+        activeDomains: "Dominios Ativos",
         inactiveItems: "Itens Inativos",
         inactiveDomains: "Domínios Principais Inativos",
-        inactiveSubdomains: "Subdomínios Inativos",
+        inactiveSubdomains: "Subdominios Inativos",
         withPin: "Com PIN",
         withoutPin: "Sem PIN",
         viewGrouped: "Visão Agrupada",
@@ -119,7 +119,7 @@ const translations = {
         username: "Usuário",
         password: "Senha",
         login: "Entrar",
-        loginFailed: "Credenciais inválidas.",
+        loginFailed: "Credenciales inválidas.",
         welcomeLogin: "Bem-vindo ao Hub de Projetos",
         loginDescription: "Faça login para continuar.",
         appName: "Nome do App",
@@ -176,7 +176,6 @@ const translations = {
         selectPartnerships: "Selecione parcerias",
         selectBm: "Selecione um BM",
         projectStatus: "Status do Projeto",
-        // FIX: Renamed 'selectStatus' to avoid duplication. This key is for the project status.
         selectProjectStatus: "Selecione um status",
         searchStatus: "Pesquisar status...",
         hasRunningCampaigns: "Possui campanhas ativas",
@@ -210,7 +209,7 @@ const translations = {
         statusWarmUp: "Aquecimento",
         statusStock: "Estoque",
         statusInUse: "Em Uso",
-        statusInvalidated: "Invalidado",
+        statusInvalidated: "Invalidated",
         roleAdvertiser: "Anunciante",
         roleContingency: "Contingência",
         roleBot: "Bot",
@@ -219,7 +218,6 @@ const translations = {
         accountStatusIssues: "Perfil com problemas",
         accountStatusRisk: "Perfil em risco",
         addEmail: "Adicionar e-mail...",
-        // FIX: Renamed 'selectStatus' to avoid duplication. This key is for the profile status.
         selectProfileStatus: "Selecione o status",
         selectRole: "Selecione a função",
         selectSecurityKey: "Selecione as chaves",
@@ -228,6 +226,12 @@ const translations = {
         emailPassword: "Senha do E-mail",
         facebookPassword: "Senha do Facebook",
         twoFactorCode: "Código 2FA",
+        addProfilesBulk: "Adicionar Perfis em Lote",
+        addProfilesBulkDescription: "Revise os perfis extraídos dos arquivos e edite as informações conforme necessário.",
+        parsingProfiles: "Lendo arquivos...",
+        exportToAdsPower: "Exportar para AdsPower",
+        selected: "Selecionados",
+        selectAll: "Selecionar Todos",
 
         // Pages
         addPage: "Adicionar Página",
@@ -239,11 +243,41 @@ const translations = {
         pageIdExistsError: "Já existe uma página com este ID do Facebook.",
         addPagesBulk: "Adicionar Páginas em Lote",
         addPagesBulkDescription: "Edite os nomes transcritos e adicione o ID do Facebook para cada página.",
-        bulkSaveError: "Algumas páginas não puderam ser salvas. Por favor, revise os erros abaixo.",
-        saveAll: "Salvar Todas",
+        bulkSaveError: "Alguns itens não puderam ser salvos. Por favor, revise os erros abaixo.",
+        saveAll: "Salvar Todos",
         saving: "Salvando...",
         transcribing: "Transcrevendo imagem...",
         uploadImage: "Carregar Imagem",
+        uploadOrPaste: "Carregar imagem ou colar da área de transferência (Ctrl+V)",
+        extractPages: "Extrair Páginas",
+        selectImage: "Selecionar Imagem",
+        changeImage: "Alterar Imagem",
+        noImageSelected: "Nenhuma imagem selecionada",
+        importFromIntegration: "Importar da Integração",
+        selectIntegration: "Selecione a Integração",
+        connect: "Conectar",
+        selectProject: "Selecione o Projeto",
+        fetchProfiles: "Buscar Perfis",
+        fetchPages: "Buscar Páginas",
+        foundPages: "Páginas Encontradas",
+        importSelected: "Importar Selecionadas",
+        connecting: "Conectando...",
+        fetching: "Buscando...",
+        noProjectsFound: "Nenhum projeto encontrado.",
+        noProfilesFound: "Nenhum perfil encontrado.",
+        importSuccess: "Páginas importadas com sucesso!",
+
+        // Integrations/Config
+        integrations: "Integrações",
+        addIntegration: "Adicionar Integração",
+        editIntegration: "Editar Integração",
+        integrationName: "Nome da Integração",
+        baseUrl: "URL Base",
+        loginUrl: "URL de Login",
+        userId: "ID do Usuário",
+        noIntegrations: "Nenhuma integração configurada.",
+        areYouSureDeleteIntegration: "Tem certeza que deseja excluir esta integração?",
+        entityIntegration: "Integração",
     },
     en: {
         projects: "Projects",
@@ -255,6 +289,7 @@ const translations = {
         chatbots: "Chatbots",
         apps: "Apps",
         history: "History",
+        list: "List",
         search: "Search everything...",
         addProject: "Add Project",
         editProject: "Edit Project",
@@ -395,7 +430,6 @@ const translations = {
         selectPartnerships: "Select partnerships",
         selectBm: "Select a BM",
         projectStatus: "Project Status",
-        // FIX: Renamed 'selectStatus' to avoid duplication. This key is for the project status.
         selectProjectStatus: "Select a status",
         searchStatus: "Search status...",
         hasRunningCampaigns: "Has running campaigns",
@@ -438,7 +472,6 @@ const translations = {
         accountStatusIssues: "Profile has issues",
         accountStatusRisk: "Profile at risk",
         addEmail: "Add e-mail...",
-        // FIX: Renamed 'selectStatus' to avoid duplication. This key is for the profile status.
         selectProfileStatus: "Select status",
         selectRole: "Select role",
         selectSecurityKey: "Select keys",
@@ -447,6 +480,12 @@ const translations = {
         emailPassword: "Email Password",
         facebookPassword: "Facebook Password",
         twoFactorCode: "2FA Code",
+        addProfilesBulk: "Add Profiles in Bulk",
+        addProfilesBulkDescription: "Review the profiles extracted from the files and edit the information as needed.",
+        parsingProfiles: "Reading files...",
+        exportToAdsPower: "Export to AdsPower",
+        selected: "Selected",
+        selectAll: "Select All",
 
         // Pages
         addPage: "Add Page",
@@ -458,11 +497,41 @@ const translations = {
         pageIdExistsError: "A page with this Facebook ID already exists.",
         addPagesBulk: "Add Pages in Bulk",
         addPagesBulkDescription: "Edit the transcribed names and add the Facebook ID for each page.",
-        bulkSaveError: "Some pages could not be saved. Please review the errors below.",
+        bulkSaveError: "Some items could not be saved. Please review the errors below.",
         saveAll: "Save All",
         saving: "Saving...",
         transcribing: "Transcribing image...",
         uploadImage: "Upload Image",
+        uploadOrPaste: "Upload an image or paste from clipboard (Ctrl+V)",
+        extractPages: "Extract Pages",
+        selectImage: "Select Image",
+        changeImage: "Change Image",
+        noImageSelected: "No image selected",
+        importFromIntegration: "Import from Integration",
+        selectIntegration: "Select Integration",
+        connect: "Connect",
+        selectProject: "Select Project",
+        fetchProfiles: "Fetch Profiles",
+        fetchPages: "Fetch Pages",
+        foundPages: "Found Pages",
+        importSelected: "Import Selected",
+        connecting: "Connecting...",
+        fetching: "Fetching...",
+        noProjectsFound: "No projects found.",
+        noProfilesFound: "No profiles found.",
+        importSuccess: "Pages imported successfully!",
+
+        // Integrations
+        integrations: "Integrations",
+        addIntegration: "Add Integration",
+        editIntegration: "Edit Integration",
+        integrationName: "Integration Name",
+        baseUrl: "Base URL",
+        loginUrl: "Login URL",
+        userId: "User ID",
+        noIntegrations: "No integrations configured.",
+        areYouSureDeleteIntegration: "Are you sure you want to delete this integration?",
+        entityIntegration: "Integration",
     },
     es: {
         projects: "Proyectos",
@@ -474,6 +543,7 @@ const translations = {
         chatbots: "Chatbots",
         apps: "Aplicaciones",
         history: "Historial",
+        list: "Lista",
         search: "Buscar todo...",
         addProject: "Añadir Proyecto",
         editProject: "Editar Proyecto",
@@ -526,7 +596,7 @@ const translations = {
         areYouSureDeleteBm: "¿Estás seguro de que quieres eliminar este BM?",
         activeDomains: "Dominios Activos",
         inactiveItems: "Elementos Inactivos",
-        inactiveDomains: "Dominios Principales Inactivos",
+        inactiveDomains: "Dominios Principais Inactivos",
         inactiveSubdomains: "Subdominios Inactivos",
         withPin: "Con PIN",
         withoutPin: "Sin PIN",
@@ -614,7 +684,6 @@ const translations = {
         selectPartnerships: "Seleccione asociaciones",
         selectBm: "Seleccione un BM",
         projectStatus: "Estado del Proyecto",
-        // FIX: Renamed 'selectStatus' to avoid duplication. This key is for the project status.
         selectProjectStatus: "Seleccione un estado",
         searchStatus: "Buscar estado...",
         hasRunningCampaigns: "Tiene campañas activas",
@@ -657,7 +726,6 @@ const translations = {
         accountStatusIssues: "Perfil con problemas",
         accountStatusRisk: "Perfil en riesgo",
         addEmail: "Añadir correo electrónico...",
-        // FIX: Renamed 'selectStatus' to avoid duplication. This key is for the profile status.
         selectProfileStatus: "Seleccione el estado",
         selectRole: "Seleccione el rol",
         selectSecurityKey: "Seleccione las claves",
@@ -666,6 +734,12 @@ const translations = {
         emailPassword: "Contraseña del Correo",
         facebookPassword: "Contraseña de Facebook",
         twoFactorCode: "Código 2FA",
+        addProfilesBulk: "Añadir Perfiles en Lote",
+        addProfilesBulkDescription: "Revise los perfiles extraídos de los archivos y edite la información según sea necesario.",
+        parsingProfiles: "Leyendo archivos...",
+        exportToAdsPower: "Exportar a AdsPower",
+        selected: "Seleccionados",
+        selectAll: "Seleccionar Todos",
 
         // Pages
         addPage: "Añadir Página",
@@ -677,51 +751,71 @@ const translations = {
         pageIdExistsError: "Ya existe una página con este ID de Facebook.",
         addPagesBulk: "Añadir Páginas en Lote",
         addPagesBulkDescription: "Edita los nombres transcritos y añade el ID de Facebook para cada página.",
-        bulkSaveError: "Algunas páginas no se pudieron guardar. Por favor, revisa los errores a continuación.",
+        bulkSaveError: "Algunos elementos no se pudieron guardar. Por favor, revisa los errores a continuación.",
         saveAll: "Guardar Todas",
         saving: "Guardando...",
         transcribing: "Transcribiendo imagen...",
         uploadImage: "Subir Imagen",
+        uploadOrPaste: "Subir una imagen o pegar desde el portapapeles (Ctrl+V)",
+        extractPages: "Extraer Páginas",
+        selectImage: "Seleccionar Imagen",
+        changeImage: "Cambiar Imagen",
+        noImageSelected: "Ninguna imagen seleccionada",
+        importFromIntegration: "Importar desde Integración",
+        selectIntegration: "Seleccionar Integración",
+        connect: "Conectar",
+        selectProject: "Seleccionar Proyecto",
+        fetchProfiles: "Obtener Perfiles",
+        fetchPages: "Obtener Páginas",
+        foundPages: "Páginas Encontradas",
+        importSelected: "Importar Seleccionadas",
+        connecting: "Conectando...",
+        fetching: "Obteniendo...",
+        noProjectsFound: "No se encontraron proyectos.",
+        noProfilesFound: "No se encontraron perfiles.",
+        importSuccess: "¡Páginas importadas con éxito!",
+
+        // Integrations
+        integrations: "Integraciones",
+        addIntegration: "Añadir Integración",
+        editIntegration: "Editar Integración",
+        integrationName: "Nombre de la Integración",
+        baseUrl: "URL Base",
+        loginUrl: "URL de Inicio de Sesión",
+        userId: "ID de Usuario",
+        noIntegrations: "No hay integraciones configuradas.",
+        areYouSureDeleteIntegration: "¿Está seguro de que desea eliminar esta integración?",
+        entityIntegration: "Integración",
     }
 };
 
-const App: React.FC = () => {
+export const App: React.FC = () => {
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             return 'dark';
         }
         return 'light';
     });
-
-    const [language, setLanguage] = useState<'pt' | 'en' | 'es'>('pt');
+    const [user, setUser] = useState<{ name: string } | null>(null);
     const [view, setView] = useState<View>('dashboard');
+    const [language, setLanguage] = useState<'pt' | 'en' | 'es'>('pt');
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [logoSrc, setLogoSrc] = useState<string | null>(null);
     const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
     const [domainViewMode, setDomainViewMode] = useState<DomainViewMode>('grouped');
     const [bmDetailViewType, setBmDetailViewType] = useState<'adAccounts' | 'apps'>('adAccounts');
-    const [isAuthenticated, setIsAuthenticated] = useState(() => sessionStorage.getItem('isAuthenticated') === 'true');
     const [loginError, setLoginError] = useState('');
 
-    const projects = useLiveQuery(() => db.projects.toArray(), []);
-    const domains = useLiveQuery(() => db.domains.toArray(), []);
-    const profiles = useLiveQuery(() => db.profiles.toArray(), []);
-    const pages = useLiveQuery(() => db.pages.toArray(), []);
-    const bms = useLiveQuery(() => db.bms.toArray(), []);
-    const partnerships = useLiveQuery(() => db.partnerships.toArray(), []);
-    const history = useLiveQuery(() => db.history.orderBy('timestamp').reverse().toArray(), []);
+    const projects = useLiveQuery(() => db.projects.toArray()) || [];
+    const domains = useLiveQuery(() => db.domains.toArray()) || [];
+    const bms = useLiveQuery(() => db.bms.toArray()) || [];
+    const partnerships = useLiveQuery(() => db.partnerships.toArray()) || [];
+    // const history = useLiveQuery(() => db.history.orderBy('timestamp').reverse().toArray()) || []; // REMOVED global history
+    const profiles = useLiveQuery(() => db.profiles.toArray()) || [];
+    const pages = useLiveQuery(() => db.pages.toArray()) || [];
+    const integrations = useLiveQuery(() => db.integrations.toArray()) || [];
 
-    const ai = useMemo(() => new GoogleGenAI({ apiKey: process.env.API_KEY as string }), []);
     const t = translations[language];
-    
-    const logHistory = useCallback(async (entry: Omit<HistoryEntry, 'id' | 'timestamp'>) => {
-        const newEntry: HistoryEntry = {
-            id: crypto.randomUUID(),
-            timestamp: new Date(),
-            ...entry,
-        };
-        await db.history.add(newEntry);
-    }, []);
 
     useEffect(() => {
         if (theme === 'dark') {
@@ -730,505 +824,494 @@ const App: React.FC = () => {
             document.documentElement.classList.remove('dark');
         }
     }, [theme]);
-    
+
     useEffect(() => {
-        const savedLogo = localStorage.getItem('custom-logo');
-        if (savedLogo) {
-            setLogoSrc(savedLogo);
-        }
+        const savedLogo = localStorage.getItem('projectHubLogo');
+        if (savedLogo) setLogoSrc(savedLogo);
+        
+        const savedUser = localStorage.getItem('projectHubUser');
+        if (savedUser) setUser(JSON.parse(savedUser));
     }, []);
 
-    const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
-
-    const handleLanguageChange = (lang: 'pt' | 'en' | 'es') => {
-        setLanguage(lang);
-    };
-
-    const handleLogin = (username: string, password: string) => {
-        if (username === 'Admin' && password === 'admin') {
-            sessionStorage.setItem('isAuthenticated', 'true');
-            setIsAuthenticated(true);
+    const handleLogin = (u: string, p: string) => {
+        // Simple mock login
+        if (u === 'admin' && p === 'admin') {
+            const userData = { name: 'Admin' };
+            setUser(userData);
+            localStorage.setItem('projectHubUser', JSON.stringify(userData));
             setLoginError('');
         } else {
-            setLoginError(t.loginFailed);
+            setLoginError(translations[language].loginFailed);
         }
     };
 
     const handleLogout = () => {
-        sessionStorage.removeItem('isAuthenticated');
-        setIsAuthenticated(false);
-        setView('dashboard'); // Reset view on logout
+        setUser(null);
+        localStorage.removeItem('projectHubUser');
     };
 
-    const getCountryName = useCallback((countryCode: string) => {
-        const country = countryList.find(c => c.en === countryCode);
-        return country?.[language] || countryCode;
-    }, [language]);
+    const toggleTheme = () => {
+        setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    };
 
-    const getLanguageName = useCallback((langCode: string) => {
-        const lang = languageList.find(l => l.en === langCode);
-        return lang?.[language] || langCode;
-    }, [language]);
-    
-    const countryOptions = useMemo(() => countryList.map(c => ({ value: c.en, label: c[language] })), [language]);
-    const languageOptions = useMemo(() => languageList.map(l => ({ value: l.en, label: l[language] })), [language]);
+    const handleSaveLogo = (newLogoSrc: string) => {
+        setLogoSrc(newLogoSrc);
+        localStorage.setItem('projectHubLogo', newLogoSrc);
+        setIsLogoModalOpen(false);
+    };
 
-    // Derived lists for relationship selects
-    const allAdAccounts = useMemo(() => bms?.flatMap(bm => bm.adAccounts.map(acc => ({...acc, bmName: bm.name}))) || [], [bms]);
-    const allApps = useMemo(() => bms?.flatMap(bm => bm.apps.map(app => ({...app, bmName: bm.name}))) || [], [bms]);
-    
-    const projectOptions = useMemo(() => projects?.map(p => ({ value: p.id, label: p.name })) || [], [projects]);
-    const domainOptions = useMemo(() => domains?.map(d => ({ value: d.id, label: d.name })) || [], [domains]);
-    const profileOptions = useMemo(() => profiles?.map(p => ({ value: p.id, label: p.name })) || [], [profiles]);
-    const pageOptions = useMemo(() => pages?.map(p => ({ value: p.id, label: p.name })) || [], [pages]);
-    const bmOptions = useMemo(() => bms?.map(b => ({ value: b.id, label: b.name })) || [], [bms]);
-    const partnershipOptions = useMemo(() => partnerships?.map(p => ({ value: p.id, label: p.name })) || [], [partnerships]);
-    const adAccountOptions = useMemo(() => allAdAccounts.map(a => ({ value: a.id, label: `${a.name} (${a.bmName})` })), [allAdAccounts]);
-    const chatbotOptions = useMemo(() => allApps.map(a => ({ value: a.id, label: `${a.name} (${a.bmName})` })), [allApps]);
+    const addHistoryEntry = async (entry: Omit<HistoryEntry, 'id' | 'timestamp'>) => {
+        await db.history.add({
+            ...entry,
+            id: crypto.randomUUID(),
+            timestamp: new Date()
+        });
+    };
 
-
-    // Data modification functions
     const handleSaveProject = async (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
-        const isEditing = !!projectData.id;
-        const projectId = projectData.id || crypto.randomUUID();
-        
-        let existingProject: Project | undefined;
-        if(isEditing) {
-            existingProject = await db.projects.get(projectId);
+        const now = new Date();
+        if (projectData.id) {
+            const existing = await db.projects.get(projectData.id);
+            await db.projects.put({ ...projectData, id: projectData.id, createdAt: existing?.createdAt || now, updatedAt: now });
+            addHistoryEntry({ entityType: 'Project', entityName: projectData.name, action: 'Update' });
+        } else {
+            await db.projects.add({ ...projectData, id: crypto.randomUUID(), createdAt: now, updatedAt: now });
+            addHistoryEntry({ entityType: 'Project', entityName: projectData.name, action: 'Create' });
         }
-
-        const finalProjectData: Project = {
-            ...projectData,
-            id: projectId,
-            createdAt: existingProject?.createdAt || new Date(),
-            updatedAt: new Date(),
-        };
-        
-        await db.projects.put(finalProjectData);
-        logHistory({ 
-            entityType: 'Project', 
-            entityName: finalProjectData.name, 
-            action: isEditing ? 'Update' : 'Create',
-            details: isEditing ? `Status changed to ${finalProjectData.status}` : ''
-        });
     };
 
-    const handleSaveDomain = async (domainData: Omit<Domain, 'id'> & { id?: string }) => {
-        const isEditing = !!domainData.id;
-        const domainId = domainData.id || crypto.randomUUID();
+    const handleSaveDomain = async (domainData: Omit<Domain, 'id' | 'isActive'> & { id?: string }) => {
+        if (domainData.id) {
+            await db.domains.update(domainData.id, domainData);
+            addHistoryEntry({ entityType: 'Domain', entityName: domainData.name, action: 'Update' });
+        } else {
+            await db.domains.add({ ...domainData, id: crypto.randomUUID(), isActive: true });
+            addHistoryEntry({ entityType: 'Domain', entityName: domainData.name, action: 'Create' });
+        }
+    };
 
-        const finalDomainData: Domain = {
-            isActive: true,
-            ...domainData,
-            id: domainId,
-        };
-
-        await db.domains.put(finalDomainData);
-        logHistory({ 
-            entityType: 'Domain', 
-            entityName: finalDomainData.name, 
-            action: isEditing ? 'Update' : 'Create' 
-        });
+    const handleDeleteDomain = async (domain: Domain) => {
+        await db.domains.delete(domain.id);
+        addHistoryEntry({ entityType: 'Domain', entityName: domain.name, action: 'Delete' });
     };
 
     const handleToggleDomainActive = async (domainId: string, isActive: boolean) => {
-        const domain = await db.domains.get(domainId);
-        if (domain) {
-            await db.domains.update(domainId, { isActive });
-            logHistory({ entityType: 'Domain', entityName: domain.name, action: isActive ? 'Activate' : 'Deactivate' });
-        }
+        await db.domains.update(domainId, { isActive });
+        const domain = domains.find(d => d.id === domainId);
+        addHistoryEntry({ entityType: 'Domain', entityName: domain?.name || 'Unknown', action: isActive ? 'Activate' : 'Deactivate' });
     };
 
     const handleToggleSubdomainActive = async (domainId: string, subdomainId: string, isActive: boolean) => {
-        const domain = await db.domains.get(domainId);
+        const domain = domains.find(d => d.id === domainId);
         if (domain) {
-            let subName = '';
-            const updatedSubdomains = domain.subdomains.map(sub => {
-                if (sub.id === subdomainId) {
-                    subName = sub.name.includes('.') ? sub.name : `${sub.name}.${domain.name}`;
-                    return { ...sub, isActive };
-                }
-                return sub;
-            });
+            const updatedSubdomains = domain.subdomains.map(sub =>
+                sub.id === subdomainId ? { ...sub, isActive } : sub
+            );
             await db.domains.update(domainId, { subdomains: updatedSubdomains });
-            logHistory({ entityType: 'Subdomain', entityName: subName, action: isActive ? 'Activate' : 'Deactivate', details: `Parent: ${domain.name}` });
+            const subName = domain.subdomains.find(s => s.id === subdomainId)?.name;
+            addHistoryEntry({ entityType: 'Subdomain', entityName: subName || 'Unknown', action: isActive ? 'Activate' : 'Deactivate', details: `Parent: ${domain.name}` });
         }
     };
+
+    const handleSaveBm = async (bmData: Omit<BM, 'id'> & { id?: string }) => {
+        if (bmData.id) {
+            await db.bms.put(bmData as BM);
+            addHistoryEntry({ entityType: 'BM', entityName: bmData.name, action: 'Update' });
+        } else {
+            await db.bms.add({ ...bmData, id: crypto.randomUUID() } as BM);
+            addHistoryEntry({ entityType: 'BM', entityName: bmData.name, action: 'Create' });
+        }
+    };
+
+    const handleDeleteBm = async (bm: BM) => {
+        await db.bms.delete(bm.id);
+        addHistoryEntry({ entityType: 'BM', entityName: bm.name, action: 'Delete' });
+    };
     
-    const handleDeleteDomain = async (domain: Domain) => {
-        await db.domains.delete(domain.id);
-        logHistory({ entityType: 'Domain', entityName: domain.name, action: 'Delete' });
+    const handleSaveApp = async (app: AppData) => {
+        // Apps are nested within BMs in this data model
+        const bm = bms.find(b => b.apps.some(a => a.id === app.id));
+        if (bm) {
+            const updatedApps = bm.apps.map(a => a.id === app.id ? app : a);
+            await db.bms.update(bm.id, { apps: updatedApps });
+            addHistoryEntry({ entityType: 'App', entityName: app.name, action: 'Update', details: `BM: ${bm.name}` });
+        }
+    };
+
+    const handleSavePartnership = async (pData: Omit<Partnership, 'id'> & { id?: string }) => {
+         if (pData.id) {
+            await db.partnerships.put(pData as Partnership);
+            addHistoryEntry({ entityType: 'Partnership', entityName: pData.name, action: 'Update' });
+        } else {
+            await db.partnerships.add({ ...pData, id: crypto.randomUUID() } as Partnership);
+            addHistoryEntry({ entityType: 'Partnership', entityName: pData.name, action: 'Create' });
+        }
+    };
+
+    const handleDeletePartnership = async (p: Partnership) => {
+        await db.partnerships.delete(p.id);
+        addHistoryEntry({ entityType: 'Partnership', entityName: p.name, action: 'Delete' });
     };
 
     const handleSaveProfile = async (profileData: Omit<Profile, 'id'> & { id?: string }) => {
-        const isEditing = !!profileData.id;
-        const profileId = profileData.id || crypto.randomUUID();
+        await (db as any).transaction('rw', db.profiles, db.pages, async () => {
+            let profileId = profileData.id;
+            const oldPageIds = profileId ? (await db.profiles.get(profileId))?.pageIds || [] : [];
+            
+            if (profileId) {
+                await db.profiles.put({ ...profileData, id: profileId } as Profile);
+                addHistoryEntry({ entityType: 'Profile', entityName: profileData.name, action: 'Update' });
+            } else {
+                profileId = crypto.randomUUID();
+                await db.profiles.add({ ...profileData, id: profileId } as Profile);
+                addHistoryEntry({ entityType: 'Profile', entityName: profileData.name, action: 'Create' });
+            }
 
-        const finalProfileData: Profile = {
-            ...profileData,
-            id: profileId,
-        };
+            // Sync Pages
+            const newPageIds = profileData.pageIds || [];
+            const addedPageIds = newPageIds.filter(id => !oldPageIds.includes(id));
+            const removedPageIds = oldPageIds.filter(id => !newPageIds.includes(id));
 
-        await db.profiles.put(finalProfileData);
-        logHistory({
-            entityType: 'Profile',
-            entityName: finalProfileData.name,
-            action: isEditing ? 'Update' : 'Create'
+            if (addedPageIds.length > 0) {
+                 await db.pages.where('id').anyOf(addedPageIds).modify(page => {
+                     if (!page.profileIds) page.profileIds = [];
+                     if (!page.profileIds.includes(profileId!)) page.profileIds.push(profileId!);
+                 });
+            }
+            if (removedPageIds.length > 0) {
+                await db.pages.where('id').anyOf(removedPageIds).modify(page => {
+                    if (page.profileIds) {
+                        page.profileIds = page.profileIds.filter(id => id !== profileId);
+                    }
+                });
+            }
         });
     };
 
     const handleDeleteProfile = async (profile: Profile) => {
         await db.profiles.delete(profile.id);
-        logHistory({ entityType: 'Profile', entityName: profile.name, action: 'Delete' });
+        addHistoryEntry({ entityType: 'Profile', entityName: profile.name, action: 'Delete' });
     };
 
-    const handleSavePage = async (pageData: Omit<Page, 'id' | 'provider' | 'profileIds'> & { id?: string }) => {
-        const isEditing = !!pageData.id;
-        const pageId = pageData.id || crypto.randomUUID();
-
-        const existingPageWithSameFbId = await db.pages.where('facebookId').equals(pageData.facebookId).first();
-        if (existingPageWithSameFbId && existingPageWithSameFbId.id !== pageId) {
-            return Promise.reject(new Error(t.pageIdExistsError));
-        }
+    const parseProfilesFromFiles = async (files: File[]): Promise<Partial<Profile>[]> => {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         
-        if (isEditing) {
-            await db.pages.update(pageId, {
-                name: pageData.name,
-                facebookId: pageData.facebookId
-            });
-             logHistory({
-                entityType: 'Page',
-                entityName: pageData.name,
-                action: 'Update'
-            });
-        } else {
-            const finalPageData: Page = {
-                name: pageData.name,
-                facebookId: pageData.facebookId,
-                id: pageId,
-                provider: '',
-                profileIds: [],
-            };
-             await db.pages.put(finalPageData);
-            logHistory({
-                entityType: 'Page',
-                entityName: finalPageData.name,
-                action: 'Create'
-            });
+        let combinedText = "";
+        for (const file of files) {
+            const text = await file.text();
+            combinedText += `\n--- FILE START: ${file.name} ---\n${text}\n--- FILE END ---\n`;
         }
 
-        return Promise.resolve();
+        const prompt = `
+        You are a data extraction assistant. Extract Facebook profile credentials from the provided text.
+        The text may contain multiple profiles in various formats.
+        
+        Return a strictly valid JSON array of objects with the following keys:
+        - name: The profile name (if available, else empty string)
+        - facebookId: The login ID, phone number, or username used for Facebook login.
+        - facebookPassword: The password for Facebook.
+        - twoFactorCode: The 2FA secret key (usually a 32-character string, sometimes separated by spaces). If it's a URL, extract the 'key' parameter.
+        - email: The primary email address.
+        - emailPassword: The password for the email.
+        - recoveryEmail: The recovery email address.
+        - purchaseDate: The date of birth if found (format YYYY-MM-DD), otherwise use today's date.
+
+        Ignore cookies or other binary data representations. Focus on credentials.
+        
+        Text to process:
+        ${combinedText}
+        `;
+
+        try {
+            const result = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                config: { responseMimeType: "application/json" }
+            });
+            const responseText = result.text;
+            if(!responseText) return [];
+            return JSON.parse(responseText);
+        } catch (e) {
+            console.error("AI Parsing failed", e);
+            return [];
+        }
+    }
+
+    const handleBulkSaveProfiles = async (profilesToSave: Partial<Profile>[]): Promise<{ success: boolean; errors: { facebookId: string, message: string }[] }> => {
+        const errors: { facebookId: string, message: string }[] = [];
+        const validProfiles: Profile[] = [];
+        const seenIds = new Set<string>();
+
+        // 1. Validate within the batch
+        for (const p of profilesToSave) {
+            const fbId = p.facebookId || '';
+            if (!fbId) {
+                 // Should have been caught by modal validation, but safety check
+                 continue; 
+            }
+            if (seenIds.has(fbId)) {
+                errors.push({ facebookId: fbId, message: 'Duplicate in batch' });
+            } else {
+                seenIds.add(fbId);
+                // Fix: Cast p to any to access email because it comes from bulk parsing and Partial<Profile> doesn't include it
+                const email = (p as any).email;
+                 validProfiles.push({
+                    id: crypto.randomUUID(),
+                    name: p.name || 'Untitled Profile',
+                    facebookId: fbId,
+                    facebookPassword: p.facebookPassword || '',
+                    twoFactorCode: p.twoFactorCode || '',
+                    emails: email ? [email] : [],
+                    emailPassword: p.emailPassword || '',
+                    recoveryEmail: p.recoveryEmail || '',
+                    purchaseDate: p.purchaseDate ? new Date(p.purchaseDate) : new Date(),
+                    supplier: 'Bulk Import',
+                    price: 0,
+                    status: 'Stock' as ProfileStatus,
+                    role: ProfileRole.Advertiser,
+                    securityKeys: [],
+                    accountStatus: 'OK' as AccountStatus,
+                    driveLink: '',
+                    pageIds: [],
+                    bmIds: [],
+                    projectIds: []
+                });
+            }
+        }
+
+        // 2. Validate against DB and Save
+        try {
+            await (db as any).transaction('rw', db.profiles, async () => {
+                for (const profile of validProfiles) {
+                    // Optional: Check for duplicate FB IDs in DB if that's a constraint
+                    // const existing = await db.profiles.where('facebookId').equals(profile.facebookId).count();
+                    // if (existing > 0) { ... }
+                    
+                    await db.profiles.add(profile);
+                    addHistoryEntry({ entityType: 'Profile', entityName: profile.name, action: 'Create', details: 'Bulk Import' });
+                }
+            });
+        } catch (err) {
+             console.error("Bulk profile save transaction failed", err);
+             return { success: false, errors: [{ facebookId: 'ALL', message: 'Transaction failed' }] };
+        }
+
+        return { success: errors.length === 0, errors };
+    };
+
+    // --- Page Logic ---
+
+    const handleSavePage = async (pageData: Omit<Page, 'id' | 'provider'> & { id?: string }) => {
+         // Check for duplicate Facebook ID (excluding current page)
+        const existingPage = await db.pages.where('facebookId').equals(pageData.facebookId).first();
+        if (existingPage && existingPage.id !== pageData.id) {
+            throw new Error(t.pageIdExistsError);
+        }
+
+        await (db as any).transaction('rw', db.pages, db.profiles, async () => {
+             let pageId = pageData.id;
+             const oldProfileIds = pageId ? (await db.pages.get(pageId))?.profileIds || [] : [];
+
+             if (pageId) {
+                 const existing = await db.pages.get(pageId);
+                 await db.pages.put({ ...existing, ...pageData } as Page);
+                 addHistoryEntry({ entityType: 'Page', entityName: pageData.name, action: 'Update' });
+             } else {
+                 pageId = crypto.randomUUID();
+                 await db.pages.add({ ...pageData, id: pageId, provider: 'Manual', profileIds: pageData.profileIds || [] } as Page);
+                 addHistoryEntry({ entityType: 'Page', entityName: pageData.name, action: 'Create' });
+             }
+
+             // Sync Profiles
+             const newProfileIds = pageData.profileIds || [];
+             const addedProfileIds = newProfileIds.filter(id => !oldProfileIds.includes(id));
+             const removedProfileIds = oldProfileIds.filter(id => !newProfileIds.includes(id));
+
+             if (addedProfileIds.length > 0) {
+                 await db.profiles.where('id').anyOf(addedProfileIds).modify(profile => {
+                     if (!profile.pageIds) profile.pageIds = [];
+                     if (!profile.pageIds.includes(pageId!)) profile.pageIds.push(pageId!);
+                 });
+             }
+             if (removedProfileIds.length > 0) {
+                 await db.profiles.where('id').anyOf(removedProfileIds).modify(profile => {
+                     if (profile.pageIds) {
+                         profile.pageIds = profile.pageIds.filter(id => id !== pageId);
+                     }
+                 });
+             }
+        });
+    };
+
+    const handleDeletePage = async (page: Page) => {
+        await db.pages.delete(page.id);
+        addHistoryEntry({ entityType: 'Page', entityName: page.name, action: 'Delete' });
     };
 
     const transcribePageNamesFromImage = async (base64Image: string): Promise<string[]> => {
         try {
-            const imagePart = {
-                inlineData: {
-                    mimeType: 'image/jpeg',
-                    data: base64Image.split(',')[1],
-                },
-            };
-            const textPart = {
-                text: "Extract the list of page names from this image. Return only a valid JSON array of strings. For example: [\"Page Name 1\", \"Page Name 2\"]. If no names are found, return an empty array.",
-            };
-    
+             // Remove data URL prefix to get raw base64
+            const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
+            const mimeType = base64Image.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)?.[1] || 'image/png';
+
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-flash',
-                contents: { parts: [imagePart, textPart] },
+                contents: {
+                    parts: [
+                        {
+                            inlineData: {
+                                mimeType: mimeType,
+                                data: base64Data
+                            }
+                        },
+                        {
+                            text: "List all the names of Facebook pages visible in this image. Return only a valid JSON array of strings, e.g., [\"Page Name 1\", \"Page Name 2\"]. Do not include markdown formatting."
+                        }
+                    ]
+                },
+                 config: {
+                    responseMimeType: "application/json"
+                }
             });
-    
-            const rawText = response.text;
-            const jsonText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-            const names = JSON.parse(jsonText);
+
+            const text = response.text;
+            if (!text) return [];
             
-            if (Array.isArray(names) && names.every(item => typeof item === 'string')) {
-                return names;
-            }
-            return [];
+            // Double check to clean up potential markdown code blocks just in case
+            const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(cleanText);
+
         } catch (error) {
             console.error("Error transcribing image:", error);
             return [];
         }
     };
-    
-    const handleBulkSavePages = async (pagesToSave: { name: string, facebookId: string }[]) => {
+
+    const handleBulkSavePages = async (pagesToSave: { name: string, facebookId: string }[]): Promise<{ success: boolean; errors: { facebookId: string, message: string }[] }> => {
         const errors: { facebookId: string, message: string }[] = [];
-        const pagesToAdd: Page[] = [];
-    
-        // FIX: Cast `db` to `any` to access the `transaction` method from the base Dexie class.
-        // This is necessary due to a type inference issue with the `ProjectHubDB` subclass.
-        await (db as any).transaction('rw', db.pages, async () => {
-            const existingFbIds = await db.pages.where('facebookId').anyOf(pagesToSave.map(p => p.facebookId)).primaryKeys();
-            const existingFbIdSet = new Set(existingFbIds);
-            const fbIdsInCurrentBatch = new Set<string>();
-    
-            for (const pageData of pagesToSave) {
-                if (!pageData.facebookId.trim()) continue;
-    
-                if (existingFbIdSet.has(pageData.facebookId)) {
-                    errors.push({ facebookId: pageData.facebookId, message: t.pageIdExistsError });
-                    continue;
-                }
-                if (fbIdsInCurrentBatch.has(pageData.facebookId)) {
-                     errors.push({ facebookId: pageData.facebookId, message: t.pageIdExistsError });
-                     continue;
-                }
-    
-                fbIdsInCurrentBatch.add(pageData.facebookId);
-                pagesToAdd.push({
+        const validPages: Page[] = [];
+        const seenIds = new Set<string>();
+
+        // 1. Validate within the batch
+        for (const p of pagesToSave) {
+            if (seenIds.has(p.facebookId)) {
+                errors.push({ facebookId: p.facebookId, message: t.pageIdExistsError }); // Duplicate in batch
+            } else {
+                seenIds.add(p.facebookId);
+                 validPages.push({
                     id: crypto.randomUUID(),
-                    name: pageData.name,
-                    facebookId: pageData.facebookId,
-                    provider: '',
-                    profileIds: [],
+                    name: p.name,
+                    facebookId: p.facebookId,
+                    provider: 'Bulk Import',
+                    profileIds: []
                 });
             }
-    
-            if (pagesToAdd.length > 0) {
-                await db.pages.bulkAdd(pagesToAdd);
-                for (const page of pagesToAdd) {
-                    await logHistory({ entityType: 'Page', entityName: page.name, action: 'Create' });
+        }
+
+        // 2. Validate against DB and Save
+        try {
+            await (db as any).transaction('rw', db.pages, async () => {
+                for (const page of validPages) {
+                    const existing = await db.pages.where('facebookId').equals(page.facebookId).count();
+                    if (existing > 0) {
+                        errors.push({ facebookId: page.facebookId, message: t.pageIdExistsError });
+                    } else {
+                        await db.pages.add(page);
+                         addHistoryEntry({ entityType: 'Page', entityName: page.name, action: 'Create', details: 'Bulk Import' });
+                    }
                 }
-            }
-        });
-    
-        return {
-            success: errors.length === 0,
-            errors,
-        };
+            });
+        } catch (err) {
+             console.error("Bulk save transaction failed", err);
+             return { success: false, errors: [{ facebookId: 'ALL', message: 'Transaction failed' }] };
+        }
+
+        return { success: errors.length === 0, errors };
     };
 
-    const handleDeletePage = async (page: Page) => {
-        await db.pages.delete(page.id);
-        logHistory({ entityType: 'Page', entityName: page.name, action: 'Delete' });
-    };
-    
-    const handleSaveBm = async (bmData: Omit<BM, 'id'> & { id?: string }) => {
-        const isEditing = !!bmData.id;
-        const bmId = bmData.id || crypto.randomUUID();
-        
-        const finalAdAccounts = (bmData.adAccounts || [])
-            .filter(acc => acc.name.trim() || acc.accountId.trim())
-            .map(acc => ({
-                ...acc,
-                id: acc.id || crypto.randomUUID()
-            }));
-
-        const finalApps = (bmData.apps || [])
-            .filter(app => app.name.trim() || app.appId.trim())
-            .map(app => ({
-                ...app,
-                id: app.id || crypto.randomUUID(),
-            }));
-        
-        const finalBm: BM = {
-            ...bmData,
-            id: bmId,
-            adAccounts: finalAdAccounts,
-            apps: finalApps,
-        };
-
-        await db.bms.put(finalBm);
-        logHistory({ entityType: 'BM', entityName: finalBm.name, action: isEditing ? 'Update' : 'Create' });
-    };
-    
-    const handleDeleteBm = async (bm: BM) => {
-        await db.bms.delete(bm.id);
-        logHistory({ entityType: 'BM', entityName: bm.name, action: 'Delete' });
-    };
-
-    const handleSavePartnership = async (partnershipData: Omit<Partnership, 'id'> & { id?: string }) => {
-        const isEditing = !!partnershipData.id;
-        const partnershipId = partnershipData.id || crypto.randomUUID();
-        
-        const finalPartnership: Partnership = {
-            ...partnershipData,
-            id: partnershipId,
-        };
-
-        await db.partnerships.put(finalPartnership);
-        logHistory({ entityType: 'Partnership', entityName: finalPartnership.name, action: isEditing ? 'Update' : 'Create' });
-    };
-
-    const handleDeletePartnership = async (partnership: Partnership) => {
-        await db.partnerships.delete(partnership.id);
-        logHistory({ entityType: 'Partnership', entityName: partnership.name, action: 'Delete' });
-    };
-
-    const handleSaveAppDetails = async (app: App) => {
-        if (!bms) return;
-        for (const bm of bms) {
-            const appIndex = bm.apps.findIndex(a => a.id === app.id);
-            if (appIndex > -1) {
-                const updatedApps = [...bm.apps];
-                updatedApps[appIndex] = app;
-                await db.bms.update(bm.id, { apps: updatedApps });
-                logHistory({ entityType: 'App', entityName: app.name, action: 'Update', details: `Parent BM: ${bm.name}` });
-                break;
-            }
+    // --- Integration Logic ---
+    const handleSaveIntegration = async (integrationData: Omit<Integration, 'id'> & { id?: string }) => {
+        if (integrationData.id) {
+            await db.integrations.put(integrationData as Integration);
+            addHistoryEntry({ entityType: 'Integration', entityName: integrationData.name, action: 'Update' });
+        } else {
+            await db.integrations.add({ ...integrationData, id: crypto.randomUUID() } as Integration);
+            addHistoryEntry({ entityType: 'Integration', entityName: integrationData.name, action: 'Create' });
         }
     };
+
+    const handleDeleteIntegration = async (integration: Integration) => {
+        await db.integrations.delete(integration.id);
+        addHistoryEntry({ entityType: 'Integration', entityName: integration.name, action: 'Delete' });
+    };
+
+
+    // Helper functions
+    const getCountryName = (code: string) => {
+        const country = countryList.find(c => c.en === code || c.pt === code || c.es === code); // Simplified match
+        // In reality, we should store codes and lookup. Assuming names are stored for now as per existing data.
+        // Or assume input is English name and map to current language.
+        if (!country) return code;
+        return country[language as keyof typeof country] || code;
+    };
+
+    const getLanguageName = (code: string) => {
+         const lang = languageList.find(l => l.en === code || l.pt === code || l.es === code);
+         if (!lang) return code;
+         return lang[language as keyof typeof lang] || code;
+    };
+
+    if (!user) {
+        return <LoginView onLogin={handleLogin} t={t} error={loginError} />;
+    }
+
+    // Options for Selects
+    const countryOptions = countryList.map(c => ({ value: c.en, label: c[language as keyof typeof c] }));
+    const languageOptions = languageList.map(l => ({ value: l.en, label: l[language as keyof typeof l] }));
+    const partnershipOptions = partnerships.map(p => ({ value: p.id, label: p.name }));
+    const projectOptions = projects.map(p => ({ value: p.id, label: p.name }));
+    const profileOptions = profiles.map(p => ({ value: p.id, label: p.name }));
+    const bmOptions = bms.map(b => ({ value: b.id, label: b.name }));
+    const pageOptions = pages.map(p => ({ value: p.id, label: p.name }));
 
     const renderView = () => {
         switch (view) {
             case 'projects':
-                return <ProjectsView 
-                            t={t} 
-                            projects={projects || []} 
-                            onSaveProject={handleSaveProject}
-                            getCountryName={getCountryName}
-                            getLanguageName={getLanguageName}
-                            countryOptions={countryOptions}
-                            languageOptions={languageOptions}
-                            domains={domains || []}
-                            bms={bms || []}
-                            partnerships={partnerships || []}
-                            profiles={profiles || []}
-                            pages={pages || []}
-                        />;
+                return <ProjectsView t={t} projects={projects} onSaveProject={handleSaveProject} getCountryName={getCountryName} getLanguageName={getLanguageName} countryOptions={countryOptions} languageOptions={languageOptions} domains={domains} bms={bms} partnerships={partnerships} profiles={profiles} pages={pages} />;
             case 'domains':
-                return <DomainsView 
-                            t={t} 
-                            domains={domains || []}
-                            partnerships={partnerships || []}
-                            projects={projects || []}
-                            onSaveDomain={handleSaveDomain}
-                            onDeleteDomain={handleDeleteDomain}
-                            onToggleDomainActive={handleToggleDomainActive}
-                            onToggleSubdomainActive={handleToggleSubdomainActive}
-                            getCountryName={getCountryName}
-                            getLanguageName={getLanguageName}
-                            countryOptions={countryOptions}
-                            languageOptions={languageOptions}
-                            viewMode={domainViewMode}
-                            setViewMode={setDomainViewMode}
-                            projectOptions={projectOptions}
-                        />;
-            case 'profiles':
-                return <ProfilesView
-                            t={t}
-                            profiles={profiles || []}
-                            onSaveProfile={handleSaveProfile}
-                            onDeleteProfile={handleDeleteProfile}
-                        />;
-            case 'pages':
-                return <PagesView
-                            t={t}
-                            pages={pages || []}
-                            onSavePage={handleSavePage}
-                            onDeletePage={handleDeletePage}
-                            onTranscribeImage={transcribePageNamesFromImage}
-                            onBulkSavePages={handleBulkSavePages}
-                        />;
+                return <DomainsView t={t} domains={domains} partnerships={partnerships} projects={projects} onSaveDomain={handleSaveDomain} onDeleteDomain={handleDeleteDomain} onToggleDomainActive={handleToggleDomainActive} onToggleSubdomainActive={handleToggleSubdomainActive} getCountryName={getCountryName} getLanguageName={getLanguageName} countryOptions={countryOptions} languageOptions={languageOptions} projectOptions={projectOptions} viewMode={domainViewMode} setViewMode={setDomainViewMode} />;
             case 'bms':
-                return <BMsView
-                            t={t}
-                            bms={bms || []}
-                            partnerships={partnerships || []}
-                            onSaveBm={handleSaveBm}
-                            onDeleteBm={handleDeleteBm}
-                            getCountryName={getCountryName}
-                            countryOptions={countryOptions}
-                            detailViewType={bmDetailViewType}
-                            setDetailViewType={setBmDetailViewType}
-                            projectOptions={projectOptions}
-                            profileOptions={profileOptions}
-                            pageOptions={pageOptions}
-                            partnershipOptions={partnershipOptions}
-                        />;
+                return <BMsView t={t} bms={bms} partnerships={partnerships} onSaveBm={handleSaveBm} onDeleteBm={handleDeleteBm} getCountryName={getCountryName} countryOptions={countryOptions} detailViewType={bmDetailViewType} setDetailViewType={setBmDetailViewType} partnershipOptions={partnershipOptions} projectOptions={projectOptions} profileOptions={profileOptions} pageOptions={pageOptions} />;
             case 'chatbots':
-                return <ChatbotsView
-                            t={t}
-                            bms={bms || []}
-                            partnerships={partnerships || []}
-                            onSaveApp={handleSaveAppDetails}
-                        />;
+                return <ChatbotsView t={t} bms={bms} partnerships={partnerships} onSaveApp={handleSaveApp} />;
             case 'partnerships':
-                return <PartnershipsView
-                            t={t}
-                            partnerships={partnerships || []}
-                            onSavePartnership={handleSavePartnership}
-                            onDeletePartnership={handleDeletePartnership}
-                            projectOptions={projectOptions}
-                            profileOptions={profileOptions}
-                            bmOptions={bmOptions}
-                        />;
-            case 'history':
-                return <HistoryView t={t} history={history || []} />;
-            case 'dashboard':
-                return <DashboardView t={t}/>;
+                return <PartnershipsView t={t} partnerships={partnerships} onSavePartnership={handleSavePartnership} onDeletePartnership={handleDeletePartnership} projectOptions={projectOptions} profileOptions={profileOptions} bmOptions={bmOptions} />;
+            case 'profiles':
+                return <ProfilesView t={t} profiles={profiles} pages={pages} onSaveProfile={handleSaveProfile} onDeleteProfile={handleDeleteProfile} onParseProfiles={parseProfilesFromFiles} onBulkSaveProfiles={handleBulkSaveProfiles} />;
+            case 'pages':
+                return <PagesView t={t} pages={pages} profiles={profiles} integrations={integrations} onSavePage={handleSavePage} onDeletePage={handleDeletePage} onTranscribeImage={transcribePageNamesFromImage} onBulkSavePages={handleBulkSavePages} />;
             case 'configuration':
-                 return (
-                    <div className="flex flex-col items-center justify-center h-full text-center">
-                        <div className="p-8 bg-latte-surface0 dark:bg-mocha-surface0 rounded-2xl shadow-lg">
-                            <h2 className="text-3xl font-bold text-latte-mauve dark:text-mocha-mauve">
-                                {t.configuration}
-                            </h2>
-                            <p className="mt-2 text-latte-subtext1 dark:text-mocha-subtext1">
-                                This view is under construction.
-                            </p>
-                        </div>
-                    </div>
-                );
+                return <ConfigurationView t={t} integrations={integrations} onSaveIntegration={handleSaveIntegration} onDeleteIntegration={handleDeleteIntegration} />;
+            case 'history':
+                // History View is now integrated into individual sections, but route is kept just in case for now or handled as dashboard redirect
+                return <DashboardView t={t} />;
+            case 'dashboard':
             default:
-                return (
-                    <div className="flex flex-col items-center justify-center h-full text-center">
-                        <div className="p-8 bg-latte-surface0 dark:bg-mocha-surface0 rounded-2xl shadow-lg">
-                            <h2 className="text-3xl font-bold text-latte-mauve dark:text-mocha-mauve">
-                                {t[view as keyof typeof t] || view}
-                            </h2>
-                            <p className="mt-2 text-latte-subtext1 dark:text-mocha-subtext1">
-                                This view is under construction.
-                            </p>
-                        </div>
-                    </div>
-                );
+                return <DashboardView t={t} />;
         }
     };
 
-    if (!isAuthenticated) {
-        return <LoginView onLogin={handleLogin} t={t} error={loginError} />;
-    }
-    
     return (
-        <div className="flex h-screen font-sans">
-            <Sidebar
-                t={t}
-                view={view}
-                setView={setView}
-                isCollapsed={isSidebarCollapsed}
-                setIsCollapsed={setIsSidebarCollapsed}
-                logoSrc={logoSrc}
-                onLogoClick={() => setIsLogoModalOpen(true)}
-            />
-
-            <main className="flex-1 flex flex-col">
-                <Header
-                    t={t}
-                    language={language}
-                    onLanguageChange={handleLanguageChange}
-                    theme={theme}
-                    onThemeToggle={toggleTheme}
-                    onLogout={handleLogout}
-                    onSettingsClick={() => setView('configuration')}
-                />
-                <div className="flex-1 p-6 overflow-y-auto bg-latte-base dark:bg-mocha-base">
+        <div className="flex h-screen bg-latte-base dark:bg-mocha-base text-latte-text dark:text-mocha-text transition-colors duration-300 font-sans">
+            <Sidebar t={t} view={view} setView={setView} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} logoSrc={logoSrc} onLogoClick={() => setIsLogoModalOpen(true)} />
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <Header t={t} language={language} onLanguageChange={setLanguage} theme={theme} onThemeToggle={toggleTheme} onLogout={handleLogout} onSettingsClick={() => setView('configuration')} />
+                <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
                     {renderView()}
-                </div>
-            </main>
-
-            <UpdateLogoModal 
-                isOpen={isLogoModalOpen}
-                onClose={() => setIsLogoModalOpen(false)}
-                onSave={(newLogoSrc) => {
-                    setLogoSrc(newLogoSrc);
-                    localStorage.setItem('custom-logo', newLogoSrc);
-                    setIsLogoModalOpen(false);
-                }}
-                t={t}
-            />
+                </main>
+            </div>
+            <UpdateLogoModal isOpen={isLogoModalOpen} onClose={() => setIsLogoModalOpen(false)} onSave={handleSaveLogo} t={t} />
         </div>
     );
 };
-
-export default App;

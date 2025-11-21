@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Profile, ProfileRole, ProfileStatus, AccountStatus } from '../../types';
 import { SearchableSelect } from '../ui/SearchableSelect';
-import { TagInput } from '../ui/TagInput';
 
 interface AddProfileModalProps {
     isOpen: boolean;
@@ -11,6 +10,7 @@ interface AddProfileModalProps {
     onSave: (profileData: Omit<Profile, 'id'> & { id?: string }) => void;
     t: any;
     editingProfile?: Profile | null;
+    pageOptions: { value: string; label: string }[];
 }
 
 const profileStatusOptions: { value: ProfileStatus; label: string }[] = [
@@ -39,7 +39,7 @@ const accountStatusOptions: { value: AccountStatus; label: string }[] = [
     { value: 'Profile is at risk', label: 'accountStatusRisk' }
 ];
 
-export const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSave, t, editingProfile }) => {
+export const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSave, t, editingProfile, pageOptions }) => {
     const [name, setName] = useState('');
     const [facebookId, setFacebookId] = useState('');
     const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
@@ -48,13 +48,14 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClos
     const [status, setStatus] = useState<ProfileStatus>('Stock');
     const [role, setRole] = useState<ProfileRole>(ProfileRole.Advertiser);
     const [securityKeys, setSecurityKeys] = useState<string[]>([]);
-    const [emails, setEmails] = useState<string[]>([]);
+    const [email, setEmail] = useState('');
     const [accountStatus, setAccountStatus] = useState<AccountStatus>('OK');
     const [driveLink, setDriveLink] = useState('');
     const [recoveryEmail, setRecoveryEmail] = useState('');
     const [emailPassword, setEmailPassword] = useState('');
     const [facebookPassword, setFacebookPassword] = useState('');
     const [twoFactorCode, setTwoFactorCode] = useState('');
+    const [pageIds, setPageIds] = useState<string[]>([]);
 
     const resetForm = useCallback(() => {
         setName('');
@@ -65,13 +66,14 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClos
         setStatus('Stock');
         setRole(ProfileRole.Advertiser);
         setSecurityKeys([]);
-        setEmails([]);
+        setEmail('');
         setAccountStatus('OK');
         setDriveLink('');
         setRecoveryEmail('');
         setEmailPassword('');
         setFacebookPassword('');
         setTwoFactorCode('');
+        setPageIds([]);
     }, []);
 
     useEffect(() => {
@@ -85,13 +87,14 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClos
                 setStatus(editingProfile.status);
                 setRole(editingProfile.role);
                 setSecurityKeys(editingProfile.securityKeys);
-                setEmails(editingProfile.emails);
+                setEmail(editingProfile.emails && editingProfile.emails.length > 0 ? editingProfile.emails[0] : '');
                 setAccountStatus(editingProfile.accountStatus);
                 setDriveLink(editingProfile.driveLink);
                 setRecoveryEmail(editingProfile.recoveryEmail || '');
                 setEmailPassword(editingProfile.emailPassword || '');
                 setFacebookPassword(editingProfile.facebookPassword || '');
                 setTwoFactorCode(editingProfile.twoFactorCode || '');
+                setPageIds(editingProfile.pageIds || []);
             } else {
                 resetForm();
             }
@@ -123,13 +126,14 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClos
                 status,
                 role,
                 securityKeys,
-                emails,
+                emails: email ? [email] : [],
                 accountStatus,
                 driveLink,
                 recoveryEmail,
                 emailPassword,
                 facebookPassword,
                 twoFactorCode,
+                pageIds,
             };
 
             onSave(editingProfile ? { ...profileData, id: editingProfile.id } : profileData);
@@ -178,7 +182,6 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClos
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                              <div>
                                 <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.profileStatus}</label>
-                                {/* FIX: Use the new 'selectProfileStatus' translation key. */}
                                 <SearchableSelect options={translatedStatusOptions} selected={status} onChange={setStatus} placeholder={t.selectProfileStatus} searchPlaceholder={t.searchStatus} />
                             </div>
                             <div>
@@ -195,25 +198,25 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClos
                     {/* Credentials & Links */}
                      <div className="p-4 rounded-lg bg-latte-base dark:bg-mocha-base border border-latte-surface1 dark:border-mocha-surface1">
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
+                            <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.recoveryEmail}</label>
                                 <input type="email" value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-latte-mantle dark:bg-mocha-mantle border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none" />
                             </div>
+                             <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.email}</label>
+                                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-latte-mantle dark:bg-mocha-mantle border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none" />
+                            </div>
                              <div>
                                 <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.emailPassword}</label>
-                                <input type="password" value={emailPassword} onChange={(e) => setEmailPassword(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-latte-mantle dark:bg-mocha-mantle border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none" />
+                                <input type="text" value={emailPassword} onChange={(e) => setEmailPassword(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-latte-mantle dark:bg-mocha-mantle border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.facebookPassword}</label>
-                                <input type="password" value={facebookPassword} onChange={(e) => setFacebookPassword(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-latte-mantle dark:bg-mocha-mantle border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.twoFactorCode}</label>
-                                <input type="text" value={twoFactorCode} onChange={(e) => setTwoFactorCode(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-latte-mantle dark:bg-mocha-mantle border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none" />
+                                <input type="text" value={facebookPassword} onChange={(e) => setFacebookPassword(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-latte-mantle dark:bg-mocha-mantle border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none" />
                             </div>
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.email}</label>
-                                <TagInput tags={emails} onTagsChange={setEmails} placeholder={t.addEmail} />
+                                <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.twoFactorCode}</label>
+                                <input type="text" value={twoFactorCode} onChange={(e) => setTwoFactorCode(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-latte-mantle dark:bg-mocha-mantle border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none" />
                             </div>
                              <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.securityKey}</label>
@@ -223,6 +226,15 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClos
                                 <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.driveLink}</label>
                                 <input type="url" value={driveLink} onChange={(e) => setDriveLink(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-latte-mantle dark:bg-mocha-mantle border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none" />
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Pages Relationship */}
+                    <div className="p-4 rounded-lg bg-latte-base dark:bg-mocha-base border border-latte-surface1 dark:border-mocha-surface1">
+                        <h3 className="font-semibold mb-3 text-latte-text dark:text-mocha-text">{t.pages}</h3>
+                        <div>
+                            <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.selectPages}</label>
+                            <SearchableSelect options={pageOptions} selected={pageIds} onChange={setPageIds} placeholder={t.selectPages} searchPlaceholder={t.searchPages} multiple />
                         </div>
                     </div>
 

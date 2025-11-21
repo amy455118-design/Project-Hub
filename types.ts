@@ -150,8 +150,18 @@ export interface Project {
 export interface HistoryEntry {
     id: string;
     timestamp: Date;
-    entityType: 'Domain' | 'Subdomain' | 'BM' | 'Project' | 'App' | 'Page' | 'Profile' | 'Partnership';
+    entityType: 'Domain' | 'Subdomain' | 'BM' | 'Project' | 'App' | 'Page' | 'Profile' | 'Partnership' | 'Integration';
     entityName: string;
     action: 'Create' | 'Update' | 'Delete' | 'Activate' | 'Deactivate';
     details?: string;
+}
+
+export interface Integration {
+    id: string;
+    name: string;
+    baseUrl: string;
+    loginUrl: string;
+    username: string;
+    password: string;
+    userId: string;
 }

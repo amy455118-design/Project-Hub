@@ -1,6 +1,6 @@
 
 import Dexie, { Table } from 'dexie';
-import { Project, Domain, Profile, Page, BM, AdAccount, App, HistoryEntry, Partnership, ProfileRole, ProfileStatus, AccountStatus } from './types';
+import { Project, Domain, Profile, Page, BM, AdAccount, App, HistoryEntry, Partnership, ProfileRole, ProfileStatus, AccountStatus, Integration } from './types';
 
 // A type for the old AdAccount structure used in v1 of the database.
 type OldAdAccount = AdAccount & { bmId: string };
@@ -12,6 +12,7 @@ export class ProjectHubDB extends Dexie {
     pages!: Table<Page>;
     bms!: Table<BM>;
     partnerships!: Table<Partnership>;
+    integrations!: Table<Integration>;
     history!: Table<HistoryEntry>;
 
     // It's good practice to declare all tables, even ones that will be deleted,
@@ -274,6 +275,28 @@ export class ProjectHubDB extends Dexie {
             bms: 'id, partnershipId, *projectIds, *profileIds, *pageIds',
             partnerships: 'id, name, *projectIds, *profileIds, *bmIds',
             history: 'id, timestamp'
+        });
+
+        (this as Dexie).version(11).stores({
+            projects: 'id, *domainIds, *subdomainIds, *profileIds, bmId, *pageIds, *partnershipIds, adAccountId, chatbotId, status, analyst',
+            domains: 'id, partnershipId, *projectIds',
+            profiles: 'id, *pageIds, *bmIds, *projectIds, partnershipId, status, role, accountStatus',
+            pages: 'id, facebookId, *profileIds',
+            bms: 'id, partnershipId, *projectIds, *profileIds, *pageIds',
+            partnerships: 'id, name, *projectIds, *profileIds, *bmIds',
+            integrations: 'id, name',
+            history: 'id, timestamp'
+        });
+
+        (this as Dexie).version(12).stores({
+            projects: 'id, *domainIds, *subdomainIds, *profileIds, bmId, *pageIds, *partnershipIds, adAccountId, chatbotId, status, analyst',
+            domains: 'id, partnershipId, *projectIds',
+            profiles: 'id, *pageIds, *bmIds, *projectIds, partnershipId, status, role, accountStatus',
+            pages: 'id, facebookId, *profileIds',
+            bms: 'id, partnershipId, *projectIds, *profileIds, *pageIds',
+            partnerships: 'id, name, *projectIds, *profileIds, *bmIds',
+            integrations: 'id, name',
+            history: 'id, timestamp, entityType'
         });
     }
 }

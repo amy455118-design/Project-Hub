@@ -1,9 +1,9 @@
 
-
 import React, { useState, useMemo } from 'react';
 import { Project, ProjectStatus, Analyst, Domain, BM, Partnership, Profile, Page } from '../../types';
 import { PlusIcon, ProjectIcon, EditIcon, ChevronDownIcon } from '../icons';
 import { AddProjectModal } from '../modals/AddProjectModal';
+import { EntityHistory } from './EntityHistory';
 
 interface ProjectsViewProps {
     t: any;
@@ -40,6 +40,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [expandedProjectIds, setExpandedProjectIds] = useState<string[]>([]);
+    const [activeTab, setActiveTab] = useState<'list' | 'history'>('list');
 
     const allApps = useMemo(() => bms.flatMap(bm => bm.apps), [bms]);
 
@@ -212,33 +213,54 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
                     <span>{t.addProject}</span>
                 </button>
             </div>
-            {projects.length === 0 ? (
-                <div className="bg-latte-crust dark:bg-mocha-crust p-4 rounded-xl shadow-md">
-                    <div className="text-center py-12">
-                        <ProjectIcon className="w-16 h-16 mx-auto text-latte-overlay1 dark:text-mocha-overlay1 mb-4" />
-                        <p className="text-lg text-latte-subtext0 dark:text-mocha-subtext0">{t.noProjects}</p>
+
+            <div className="flex space-x-1 bg-latte-surface0 dark:bg-mocha-surface0 p-1 rounded-lg w-fit mb-6">
+                <button
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'list' ? 'bg-white dark:bg-mocha-surface2 shadow-sm text-latte-text dark:text-mocha-text' : 'text-latte-subtext0 dark:text-mocha-subtext0 hover:text-latte-text dark:hover:text-mocha-text'}`}
+                    onClick={() => setActiveTab('list')}
+                >
+                    {t.list}
+                </button>
+                <button
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'history' ? 'bg-white dark:bg-mocha-surface2 shadow-sm text-latte-text dark:text-mocha-text' : 'text-latte-subtext0 dark:text-mocha-subtext0 hover:text-latte-text dark:hover:text-mocha-text'}`}
+                    onClick={() => setActiveTab('history')}
+                >
+                    {t.history}
+                </button>
+            </div>
+
+            {activeTab === 'list' ? (
+                projects.length === 0 ? (
+                    <div className="bg-latte-crust dark:bg-mocha-crust p-4 rounded-xl shadow-md">
+                        <div className="text-center py-12">
+                            <ProjectIcon className="w-16 h-16 mx-auto text-latte-overlay1 dark:text-mocha-overlay1 mb-4" />
+                            <p className="text-lg text-latte-subtext0 dark:text-mocha-subtext0">{t.noProjects}</p>
+                        </div>
                     </div>
-                </div>
-            ) : (
-                <div className="space-y-8">
-                    {projectStatusOptions.map(statusOption => {
-                        const projectsForStatus = projectsByStatus[statusOption.value];
-                        if (!projectsForStatus || projectsForStatus.length === 0) return null;
-                        return (
-                             <div key={statusOption.value}>
-                                <h2 className="text-xl font-bold mb-3">
-                                     <span className={`px-3 py-1.5 text-base font-bold rounded-full ${getStatusColor(statusOption.value)}`}>
-                                        {t[`status${statusOption.value.replace(/\s/g, '')}`] || statusOption.value} ({projectsForStatus.length})
-                                    </span>
-                                </h2>
-                                <div className="bg-latte-crust dark:bg-mocha-crust p-4 rounded-xl shadow-md">
-                                    {renderProjectTable(projectsForStatus)}
+                ) : (
+                    <div className="space-y-8">
+                        {projectStatusOptions.map(statusOption => {
+                            const projectsForStatus = projectsByStatus[statusOption.value];
+                            if (!projectsForStatus || projectsForStatus.length === 0) return null;
+                            return (
+                                 <div key={statusOption.value}>
+                                    <h2 className="text-xl font-bold mb-3">
+                                         <span className={`px-3 py-1.5 text-base font-bold rounded-full ${getStatusColor(statusOption.value)}`}>
+                                            {t[`status${statusOption.value.replace(/\s/g, '')}`] || statusOption.value} ({projectsForStatus.length})
+                                        </span>
+                                    </h2>
+                                    <div className="bg-latte-crust dark:bg-mocha-crust p-4 rounded-xl shadow-md">
+                                        {renderProjectTable(projectsForStatus)}
+                                    </div>
                                 </div>
-                            </div>
-                        )
-                    })}
-                </div>
+                            )
+                        })}
+                    </div>
+                )
+            ) : (
+                <EntityHistory t={t} entityTypes={['Project']} />
             )}
+
             <AddProjectModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}

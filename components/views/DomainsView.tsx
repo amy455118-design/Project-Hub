@@ -1,14 +1,13 @@
 
-
 import React, { useState, useMemo } from 'react';
 import { Domain, Partnership, Subdomain, Project } from '../../types';
 import { DomainViewMode } from '../../types';
 import { DomainList } from './DomainList';
 import { AddDomainModal } from '../modals/AddDomainModal';
 import { ConfirmDeleteModal } from '../ui/ConfirmDeleteModal';
-import { PlusIcon, LayoutGridIcon, ListIcon } from '../icons';
+import { PlusIcon, LayoutGridIcon, ListIcon, ExternalLinkIcon, EditIcon } from '../icons';
+import { EntityHistory } from './EntityHistory';
 import { ToggleSwitch } from '../ui/ToggleSwitch';
-import { ExternalLinkIcon, EditIcon } from '../icons';
 
 interface DomainsViewProps {
     t: any;
@@ -32,6 +31,7 @@ export const DomainsView: React.FC<DomainsViewProps> = ({ t, domains, partnershi
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingDomain, setEditingDomain] = useState<Domain | null>(null);
     const [domainToDelete, setDomainToDelete] = useState<Domain | null>(null);
+    const [activeTab, setActiveTab] = useState<'list' | 'history'>('list');
 
     const handleSaveDomain = (domainData: Omit<Domain, 'id' | 'isActive'> & { id?: string }) => {
         onSaveDomain(domainData);
@@ -142,65 +142,94 @@ export const DomainsView: React.FC<DomainsViewProps> = ({ t, domains, partnershi
                 </div>
             </div>
 
-            {renderDomainSection(activeDomains, t.activeDomains)}
+            <div className="flex space-x-1 bg-latte-surface0 dark:bg-mocha-surface0 p-1 rounded-lg w-fit mb-6">
+                <button
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'list' ? 'bg-white dark:bg-mocha-surface2 shadow-sm text-latte-text dark:text-mocha-text' : 'text-latte-subtext0 dark:text-mocha-subtext0 hover:text-latte-text dark:hover:text-mocha-text'}`}
+                    onClick={() => setActiveTab('list')}
+                >
+                    {t.list}
+                </button>
+                <button
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'history' ? 'bg-white dark:bg-mocha-surface2 shadow-sm text-latte-text dark:text-mocha-text' : 'text-latte-subtext0 dark:text-mocha-subtext0 hover:text-latte-text dark:hover:text-mocha-text'}`}
+                    onClick={() => setActiveTab('history')}
+                >
+                    {t.history}
+                </button>
+            </div>
 
-            {(inactiveParentDomains.length > 0 || inactiveSubdomains.length > 0) && (
-                <div className="mb-12">
-                    <h2 className="text-2xl font-bold text-latte-text dark:text-mocha-text mb-4 border-b-2 border-latte-surface1 dark:border-mocha-surface1 pb-2">{t.inactiveItems}</h2>
-                    {inactiveParentDomains.length > 0 && (
-                        <div className="mb-8">
-                            <h3 className="text-xl font-semibold text-latte-subtext0 dark:text-mocha-subtext0 mb-3">{t.inactiveDomains}</h3>
-                            {renderDomainSection(inactiveParentDomains, "")}
+            {activeTab === 'list' ? (
+                <>
+                    {renderDomainSection(activeDomains, t.activeDomains)}
+
+                    {(inactiveParentDomains.length > 0 || inactiveSubdomains.length > 0) && (
+                        <div className="mb-12">
+                            <h2 className="text-2xl font-bold text-latte-text dark:text-mocha-text mb-4 border-b-2 border-latte-surface1 dark:border-mocha-surface1 pb-2">{t.inactiveItems}</h2>
+                            {inactiveParentDomains.length > 0 && (
+                                <div className="mb-8">
+                                    <h3 className="text-xl font-semibold text-latte-subtext0 dark:text-mocha-subtext0 mb-3">{t.inactiveDomains}</h3>
+                                    {renderDomainSection(inactiveParentDomains, "")}
+                                </div>
+                            )}
+                            {inactiveSubdomains.length > 0 && (
+                                <div className="mb-8">
+                                    <h3 className="text-xl font-semibold text-latte-subtext0 dark:text-mocha-subtext0 mb-3">{t.inactiveSubdomains}</h3>
+                                    <DomainList
+                                        domains={[]} // Not used for Subdomain-only display in this implementation block but required by TS
+                                        // We'll reuse the logic directly here or adapt DomainList to accept subdomains only?
+                                        // Actually, `DomainList` expects `Domain[]`. The code block below handles subdomains manually.
+                                        // Let's keep the manual table render for inactive subdomains as it was in the previous version.
+                                        viewMode={viewMode} t={t} handleEditClick={()=>{}} setDomainToDelete={()=>{}} getCountryName={()=>{return ''}} getLanguageName={()=>{return ''}} handleToggleActive={()=>{}} handleToggleSubdomainActive={()=>{}}
+                                    />
+                                    {/* Manually rendering the table for inactive subdomains as in the original code to avoid complex refactoring of DomainList right now */}
+                                    <div className="bg-latte-crust dark:bg-mocha-crust p-4 rounded-xl shadow-md mt-2">
+                                        <table className="w-full text-left">
+                                            <thead className="border-b-2 border-latte-surface1 dark:border-mocha-surface1">
+                                                <tr>
+                                                    <th className="p-2 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.subdomainName}</th>
+                                                    <th className="p-2 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.parentDomain}</th>
+                                                    <th className="p-2 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.countries}</th>
+                                                    <th className="p-2 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.language}</th>
+                                                    <th className="p-2 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1 text-right">{t.actions}</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {inactiveSubdomains.map(sub => (
+                                                    <tr key={sub.id} className="border-b border-latte-surface0 dark:border-mocha-surface0 last:border-b-0">
+                                                        <td className="p-2 font-medium">{sub.name}</td>
+                                                        <td className="p-2 text-latte-subtext0 dark:text-mocha-subtext0">{sub.parentDomain.name}</td>
+                                                        <td className="p-2">{sub.countries.map(getCountryName).join(', ')}</td>
+                                                        <td className="p-2">{getLanguageName(sub.language)}</td>
+                                                        <td className="p-2 text-right">
+                                                            <div className="flex items-center justify-end space-x-1">
+                                                                {sub.planningSheetUrl && (
+                                                                    <a href={sub.planningSheetUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-md hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-latte-green dark:text-mocha-green" aria-label={`Planning Sheet for ${sub.name}`}>
+                                                                        <ExternalLinkIcon className="w-5 h-5" />
+                                                                    </a>
+                                                                )}
+                                                                <ToggleSwitch checked={sub.isActive} onChange={(checked) => onToggleSubdomainActive(sub.parentDomain.id, sub.id, checked)} />
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); handleEditClick(sub.parentDomain); }}
+                                                                    className="p-2 rounded-md hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-latte-blue dark:text-mocha-blue"
+                                                                    aria-label={`Edit parent of ${sub.name}`}
+                                                                ><EditIcon className="w-5 h-5" /></button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
-                    {inactiveSubdomains.length > 0 && (
-                        <div className="mb-8">
-                            <h3 className="text-xl font-semibold text-latte-subtext0 dark:text-mocha-subtext0 mb-3">{t.inactiveSubdomains}</h3>
-                            <div className="bg-latte-crust dark:bg-mocha-crust p-4 rounded-xl shadow-md">
-                                <table className="w-full text-left">
-                                    <thead className="border-b-2 border-latte-surface1 dark:border-mocha-surface1">
-                                        <tr>
-                                            <th className="p-2 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.subdomainName}</th>
-                                            <th className="p-2 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.parentDomain}</th>
-                                            <th className="p-2 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.countries}</th>
-                                            <th className="p-2 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.language}</th>
-                                            <th className="p-2 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1 text-right">{t.actions}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {inactiveSubdomains.map(sub => (
-                                            <tr key={sub.id} className="border-b border-latte-surface0 dark:border-mocha-surface0 last:border-b-0">
-                                                <td className="p-2 font-medium">{sub.name}</td>
-                                                <td className="p-2 text-latte-subtext0 dark:text-mocha-subtext0">{sub.parentDomain.name}</td>
-                                                <td className="p-2">{sub.countries.map(getCountryName).join(', ')}</td>
-                                                <td className="p-2">{getLanguageName(sub.language)}</td>
-                                                <td className="p-2 text-right">
-                                                    <div className="flex items-center justify-end space-x-1">
-                                                        {sub.planningSheetUrl && (
-                                                            <a href={sub.planningSheetUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-md hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-latte-green dark:text-mocha-green" aria-label={`Planning Sheet for ${sub.name}`}>
-                                                                <ExternalLinkIcon className="w-5 h-5" />
-                                                            </a>
-                                                        )}
-                                                        <ToggleSwitch checked={sub.isActive} onChange={(checked) => onToggleSubdomainActive(sub.parentDomain.id, sub.id, checked)} />
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); handleEditClick(sub.parentDomain); }}
-                                                            className="p-2 rounded-md hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-latte-blue dark:text-mocha-blue"
-                                                            aria-label={`Edit parent of ${sub.name}`}
-                                                        ><EditIcon className="w-5 h-5" /></button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
 
-            {(activeDomains.length === 0 && inactiveParentDomains.length === 0 && inactiveSubdomains.length === 0) && (
-                <p className="text-center py-8 text-latte-subtext0 dark:text-mocha-subtext0">{t.noDomains}</p>
+                    {(activeDomains.length === 0 && inactiveParentDomains.length === 0 && inactiveSubdomains.length === 0) && (
+                        <p className="text-center py-8 text-latte-subtext0 dark:text-mocha-subtext0">{t.noDomains}</p>
+                    )}
+                </>
+            ) : (
+                <EntityHistory t={t} entityTypes={['Domain', 'Subdomain']} />
             )}
 
             <AddDomainModal

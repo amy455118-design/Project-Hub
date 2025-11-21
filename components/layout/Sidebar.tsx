@@ -1,8 +1,7 @@
 
-
 import React from 'react';
 import { View } from '../../types';
-import { ProjectIcon, DomainIcon, ProfileIcon, PageIcon, BMIcon, MessageSquareIcon, UsersIcon, HistoryIcon, ChevronsRightIcon, ChevronsLeftIcon, MtLogoIcon } from '../icons';
+import { ProjectIcon, DomainIcon, ProfileIcon, PageIcon, BMIcon, MessageSquareIcon, UsersIcon, ChevronsRightIcon, ChevronsLeftIcon, MtLogoIcon } from '../icons';
 
 const navItems = [
     { id: 'projects' as View, icon: ProjectIcon, labelKey: 'projects' },
@@ -12,7 +11,6 @@ const navItems = [
     { id: 'bms' as View, icon: BMIcon, labelKey: 'bms' },
     { id: 'chatbots' as View, icon: MessageSquareIcon, labelKey: 'chatbots' },
     { id: 'partnerships' as View, icon: UsersIcon, labelKey: 'partnerships' },
-    { id: 'history' as View, icon: HistoryIcon, labelKey: 'history' },
 ];
 
 interface SidebarProps {

@@ -1,24 +1,27 @@
 
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Page } from '../../types';
+import { SearchableSelect } from '../ui/SearchableSelect';
 
 interface AddPageModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (pageData: Omit<Page, 'id' | 'provider' | 'profileIds'> & { id?: string }) => Promise<void>;
+    onSave: (pageData: Omit<Page, 'id' | 'provider'> & { id?: string }) => Promise<void>;
     t: any;
     editingPage?: Page | null;
+    profileOptions: { value: string; label: string }[];
 }
 
-export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose, onSave, t, editingPage }) => {
+export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose, onSave, t, editingPage, profileOptions }) => {
     const [name, setName] = useState('');
     const [facebookId, setFacebookId] = useState('');
+    const [profileIds, setProfileIds] = useState<string[]>([]);
     const [error, setError] = useState('');
 
     const resetForm = useCallback(() => {
         setName('');
         setFacebookId('');
+        setProfileIds([]);
         setError('');
     }, []);
 
@@ -27,6 +30,7 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose, onS
             if (editingPage) {
                 setName(editingPage.name);
                 setFacebookId(editingPage.facebookId);
+                setProfileIds(editingPage.profileIds || []);
             } else {
                 resetForm();
             }
@@ -47,7 +51,10 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose, onS
         setError('');
         if (name.trim() && facebookId.trim()) {
             try {
-                await onSave(editingPage ? { id: editingPage.id, name, facebookId } : { name, facebookId });
+                await onSave(editingPage 
+                    ? { id: editingPage.id, name, facebookId, profileIds } 
+                    : { name, facebookId, profileIds }
+                );
                 onClose();
             } catch (err) {
                 if (err instanceof Error) {
@@ -63,7 +70,7 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose, onS
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity" onClick={onClose}>
             <div className="bg-latte-mantle dark:bg-mocha-mantle rounded-xl shadow-2xl p-8 w-full max-w-lg transform transition-all" onClick={(e) => e.stopPropagation()}>
                 <h2 className="text-2xl font-bold mb-6 text-latte-text dark:text-mocha-text">{editingPage ? t.editPage : t.addPage}</h2>
-                <div className="space-y-4">
+                <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                     <div>
                         <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.pageName}</label>
                         <input
@@ -80,6 +87,17 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose, onS
                             value={facebookId}
                             onChange={(e) => setFacebookId(e.target.value)}
                             className="w-full px-3 py-2 rounded-lg bg-latte-base dark:bg-mocha-base border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.selectProfiles}</label>
+                        <SearchableSelect 
+                            options={profileOptions} 
+                            selected={profileIds} 
+                            onChange={setProfileIds} 
+                            placeholder={t.selectProfiles} 
+                            searchPlaceholder={t.searchProfiles} 
+                            multiple 
                         />
                     </div>
                     {error && <p className="text-sm text-center text-latte-red dark:text-mocha-red">{error}</p>}
