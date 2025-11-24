@@ -1,9 +1,11 @@
 
+
 import React, { useState, useMemo } from 'react';
-import { Project, ProjectStatus, Analyst, Domain, BM, Partnership, Profile, Page } from '../../types';
-import { PlusIcon, ProjectIcon, EditIcon, ChevronDownIcon } from '../icons';
+import { Project, ProjectStatus, Analyst, Domain, BM, Partnership, Profile, Page, User } from '../../types';
+import { PlusIcon, ProjectIcon, EditIcon, ChevronDownIcon, FilterIcon } from '../icons';
 import { AddProjectModal } from '../modals/AddProjectModal';
 import { EntityHistory } from './EntityHistory';
+import { SearchableSelect } from '../ui/SearchableSelect';
 
 interface ProjectsViewProps {
     t: any;
@@ -18,6 +20,7 @@ interface ProjectsViewProps {
     partnerships: Partnership[];
     profiles: Profile[];
     pages: Page[];
+    users: User[];
 }
 
 const projectStatusOptions: { value: ProjectStatus, label: string }[] = [
@@ -29,23 +32,105 @@ const projectStatusOptions: { value: ProjectStatus, label: string }[] = [
     { value: 'Broad', label: 'Broad' }
 ];
 
-const analystOptions: { value: Analyst, label: string }[] = [
-    { value: 'Daniel', label: 'Daniel' },
-    { value: 'Carlos', label: 'Carlos' },
-    { value: 'Tiago', label: 'Tiago' }
-];
-
 export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
-    const { t, projects, onSaveProject, getCountryName, getLanguageName, countryOptions, languageOptions, domains, bms, partnerships, profiles, pages } = props;
+    const { t, projects, onSaveProject, getCountryName, getLanguageName, countryOptions, languageOptions, domains, bms, partnerships, profiles, pages, users } = props;
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [expandedProjectIds, setExpandedProjectIds] = useState<string[]>([]);
     const [activeTab, setActiveTab] = useState<'list' | 'history'>('list');
 
+    // Filter State
+    const [showFilters, setShowFilters] = useState(false);
+    const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+    const [selectedLanguage, setSelectedLanguage] = useState('');
+    const [selectedTargets, setSelectedTargets] = useState<string[]>([]); // Domains
+    const [selectedCategory, setSelectedCategory] = useState('');
+    const [selectedPartnerships, setSelectedPartnerships] = useState<string[]>([]);
+    const [selectedBm, setSelectedBm] = useState('');
+    const [selectedAdAccount, setSelectedAdAccount] = useState('');
+    const [selectedStatuses, setSelectedStatuses] = useState<ProjectStatus[]>([]);
+    const [selectedAnalyst, setSelectedAnalyst] = useState('');
+    const [minProfiles, setMinProfiles] = useState('');
+    const [minPages, setMinPages] = useState('');
+
     const allApps = useMemo(() => bms.flatMap(bm => bm.apps), [bms]);
 
+    // Computed Options for Filters
+    const domainAndSubdomainOptions = useMemo(() => {
+        const options: { value: string, label: string, type: 'domain' | 'subdomain' }[] = [];
+        domains.forEach(domain => {
+            options.push({ value: domain.id, label: domain.name, type: 'domain' });
+            domain.subdomains.forEach(sub => {
+                const label = sub.name.includes('.') ? sub.name : `${sub.name}.${domain.name}`;
+                options.push({ value: sub.id, label, type: 'subdomain' });
+            });
+        });
+        return options;
+    }, [domains]);
+
+    const categoryOptions = useMemo(() => {
+        const cats = new Set<string>();
+        projects.forEach(p => {
+            if (p.category) cats.add(p.category);
+        });
+        return Array.from(cats).map(c => ({ value: c, label: c }));
+    }, [projects]);
+
+    const partnershipOptions = useMemo(() => partnerships.map(p => ({ value: p.id, label: p.name })), [partnerships]);
+    const bmOptions = useMemo(() => bms.map(b => ({ value: b.id, label: b.name })), [bms]);
+    
+    const adAccountOptions = useMemo(() => {
+        const accounts: { value: string, label: string }[] = [];
+        bms.forEach(bm => {
+            bm.adAccounts.forEach(acc => {
+                accounts.push({ value: acc.id, label: `${acc.name} (${bm.name})` });
+            });
+        });
+        return accounts;
+    }, [bms]);
+
+    const analystOptions = useMemo(() => {
+        return users
+            .filter(u => u.role === 'Analyst' || (u.role as string) === 'Traffic')
+            .map(u => ({ value: u.name, label: u.name }));
+    }, [users]);
+    
+    const statusOptions = useMemo(() => projectStatusOptions.map(s => ({...s, label: t[`status${s.value.replace(/\s/g, '')}`] || s.label})), [t]);
+
+
+    const filteredProjects = useMemo(() => {
+        return projects.filter(p => {
+            if (selectedCountries.length > 0 && !p.countries.some(c => selectedCountries.includes(c))) return false;
+            if (selectedLanguage && p.language !== selectedLanguage) return false;
+            
+            if (selectedTargets.length > 0) {
+                const pTargets = [...(p.domainIds || []), ...(p.subdomainIds || [])];
+                if (!pTargets.some(t => selectedTargets.includes(t))) return false;
+            }
+            
+            if (selectedCategory && p.category !== selectedCategory) return false;
+            
+            if (selectedPartnerships.length > 0) {
+                 const pIds = p.partnershipIds || [];
+                 if (!pIds.some(id => selectedPartnerships.includes(id))) return false;
+            }
+            
+            if (selectedBm && p.bmId !== selectedBm) return false;
+            if (selectedAdAccount && p.adAccountId !== selectedAdAccount) return false;
+            
+            if (selectedStatuses.length > 0 && !selectedStatuses.includes(p.status)) return false;
+            if (selectedAnalyst && p.analyst !== selectedAnalyst) return false;
+            
+            if (minProfiles && (p.profileIds?.length || 0) < parseInt(minProfiles)) return false;
+            if (minPages && (p.pageIds?.length || 0) < parseInt(minPages)) return false;
+
+            return true;
+        });
+    }, [projects, selectedCountries, selectedLanguage, selectedTargets, selectedCategory, selectedPartnerships, selectedBm, selectedAdAccount, selectedStatuses, selectedAnalyst, minProfiles, minPages]);
+
+
     const projectsByStatus = useMemo(() => {
-        return projects.reduce((acc, project) => {
+        return filteredProjects.reduce((acc, project) => {
             const status = project.status;
             if (!acc[status]) {
                 acc[status] = [];
@@ -53,7 +138,8 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
             acc[status].push(project);
             return acc;
         }, {} as Record<ProjectStatus, Project[]>);
-    }, [projects]);
+    }, [filteredProjects]);
+
 
     const handleSave = (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
         onSaveProject(projectData);
@@ -125,6 +211,20 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
             }
         });
         return targets.join(', ');
+    };
+    
+    const handleClearFilters = () => {
+        setSelectedCountries([]);
+        setSelectedLanguage('');
+        setSelectedTargets([]);
+        setSelectedCategory('');
+        setSelectedPartnerships([]);
+        setSelectedBm('');
+        setSelectedAdAccount('');
+        setSelectedStatuses([]);
+        setSelectedAnalyst('');
+        setMinProfiles('');
+        setMinPages('');
     };
 
     const renderProjectTable = (projectList: Project[]) => (
@@ -205,14 +305,79 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-latte-text dark:text-mocha-text">{t.projects}</h1>
-                <button
-                    onClick={handleAddClick}
-                    className="flex items-center space-x-2 bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
-                >
-                    <PlusIcon className="w-5 h-5" />
-                    <span>{t.addProject}</span>
-                </button>
+                <div className="flex items-center space-x-2">
+                    <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-semibold transition-colors ${showFilters ? 'bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust' : 'bg-latte-surface0 dark:bg-mocha-surface0 text-latte-text dark:text-mocha-text hover:bg-latte-surface1 dark:hover:bg-mocha-surface1'}`}
+                    >
+                        <FilterIcon className="w-5 h-5" />
+                        <span>{t.filters}</span>
+                    </button>
+                    <button
+                        onClick={handleAddClick}
+                        className="flex items-center space-x-2 bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                    >
+                        <PlusIcon className="w-5 h-5" />
+                        <span>{t.addProject}</span>
+                    </button>
+                </div>
             </div>
+
+            {showFilters && (
+                <div className="bg-latte-surface0 dark:bg-mocha-surface0 p-4 rounded-xl mb-6 shadow-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                             <label className="block text-xs font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.countries}</label>
+                            <SearchableSelect options={countryOptions} selected={selectedCountries} onChange={setSelectedCountries} placeholder={t.selectCountries} searchPlaceholder={t.searchCountries} multiple />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.language}</label>
+                            <SearchableSelect options={languageOptions} selected={selectedLanguage} onChange={setSelectedLanguage} placeholder={t.selectLanguage} searchPlaceholder={t.searchLanguages} />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.domains}</label>
+                            <SearchableSelect options={domainAndSubdomainOptions} selected={selectedTargets} onChange={setSelectedTargets} placeholder={t.selectDomains} searchPlaceholder={t.searchDomains} multiple />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.category}</label>
+                            <SearchableSelect options={categoryOptions} selected={selectedCategory} onChange={setSelectedCategory} placeholder={t.selectCategory} searchPlaceholder={t.searchCategories} />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.partnerships}</label>
+                            <SearchableSelect options={partnershipOptions} selected={selectedPartnerships} onChange={setSelectedPartnerships} placeholder={t.selectPartnerships} searchPlaceholder={t.searchPartnerships} multiple />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.bms}</label>
+                            <SearchableSelect options={bmOptions} selected={selectedBm} onChange={setSelectedBm} placeholder={t.selectBm} searchPlaceholder={t.searchBms} />
+                        </div>
+                         <div>
+                            <label className="block text-xs font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.adAccounts}</label>
+                            <SearchableSelect options={adAccountOptions} selected={selectedAdAccount} onChange={setSelectedAdAccount} placeholder={t.selectAdAccount} searchPlaceholder={t.searchAdAccounts} />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.projectStatus}</label>
+                            <SearchableSelect options={statusOptions} selected={selectedStatuses} onChange={setSelectedStatuses} placeholder={t.selectProjectStatus} searchPlaceholder={t.searchStatus} multiple />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.analyst}</label>
+                            <SearchableSelect options={analystOptions} selected={selectedAnalyst} onChange={setSelectedAnalyst} placeholder={t.selectAnalyst} searchPlaceholder={t.searchAnalyst} />
+                        </div>
+                        <div>
+                             <label className="block text-xs font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.minProfiles}</label>
+                             <input type="number" min="0" value={minProfiles} onChange={(e) => setMinProfiles(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-latte-base dark:bg-mocha-base border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none text-sm" placeholder="0" />
+                        </div>
+                        <div>
+                             <label className="block text-xs font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.minPages}</label>
+                             <input type="number" min="0" value={minPages} onChange={(e) => setMinPages(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-latte-base dark:bg-mocha-base border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none text-sm" placeholder="0" />
+                        </div>
+                        <div className="flex items-end">
+                            <button onClick={handleClearFilters} className="w-full px-4 py-2 rounded-lg border border-latte-surface2 dark:border-mocha-surface2 text-latte-subtext1 dark:text-mocha-subtext1 hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-sm font-medium transition-colors">
+                                {t.clearFilters}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="flex space-x-1 bg-latte-surface0 dark:bg-mocha-surface0 p-1 rounded-lg w-fit mb-6">
                 <button
@@ -230,7 +395,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
             </div>
 
             {activeTab === 'list' ? (
-                projects.length === 0 ? (
+                filteredProjects.length === 0 ? (
                     <div className="bg-latte-crust dark:bg-mocha-crust p-4 rounded-xl shadow-md">
                         <div className="text-center py-12">
                             <ProjectIcon className="w-16 h-16 mx-auto text-latte-overlay1 dark:text-mocha-overlay1 mb-4" />

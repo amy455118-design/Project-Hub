@@ -1,11 +1,12 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { Project, Domain, BM, Partnership, App as AppData, Profile, Page, View, DomainViewMode, ProfileRole, Integration, ProfileStatus, AccountStatus } from './types';
+import { Project, Domain, BM, Partnership, App as AppData, Profile, Page, View, DomainViewMode, ProfileRole, Integration, ProfileStatus, AccountStatus, User } from './types';
 import { GoogleGenAI } from "@google/genai";
 
 // Supabase Imports
 import { useSupabase } from './hooks/useSupabase';
-import { projectApi, domainApi, bmApi, partnershipApi, profileApi, pageApi, integrationApi } from './api';
+import { projectApi, domainApi, bmApi, partnershipApi, profileApi, pageApi, integrationApi, userApi } from './api';
 
 import { LoginView } from './components/layout/LoginView';
 import { Sidebar } from './components/layout/Sidebar';
@@ -121,7 +122,7 @@ const translations = {
         username: "Usuário",
         password: "Senha",
         login: "Entrar",
-        loginFailed: "Credenciales inválidas.",
+        loginFailed: "Credenciais inválidas.",
         welcomeLogin: "Bem-vindo ao Hub de Projetos",
         loginDescription: "Faça login para continuar.",
         appName: "Nome do App",
@@ -190,6 +191,10 @@ const translations = {
         statusDeactivated: "Desativado",
         statusPaused: "Pausado",
         statusBroad: "Broadcast",
+        filters: "Filtros",
+        clearFilters: "Limpar Filtros",
+        minProfiles: "Mín. Perfis",
+        minPages: "Mín. Páginas",
 
         // Profiles
         addProfile: "Adicionar Perfil",
@@ -280,6 +285,30 @@ const translations = {
         noIntegrations: "Nenhuma integração configurada.",
         areYouSureDeleteIntegration: "Tem certeza que deseja excluir esta integração?",
         entityIntegration: "Integração",
+
+        // User Roles
+        roleContent: "Conteúdo",
+        roleSupport: "Suporte",
+        roleStructure: "Estrutura",
+        roleAnalyst: "Analista",
+        roleTraffic: "Analista", // Legacy support, renamed to Analyst in UI
+        roleCreatives: "Criativos",
+        roleBroadcast: "Broadcast",
+        roleDevelopment: "Desenvolvimento",
+        roleManagement: "Gestão",
+        roleOwner: "Dono",
+        
+        // User Role Descriptions
+        descContent: "Cria conteúdo para páginas/domínios.",
+        descSupport: "Suporte ao conteúdo, servidores, criação de domínios.",
+        descStructure: "Gerencia perfis, páginas, e estrutura de novos projetos.",
+        descAnalyst: "Gerencia anúncios, analisa projetos e tomadas de decisão.",
+        descTraffic: "Gerencia anúncios, analisa projetos e tomadas de decisão.", // Legacy
+        descCreatives: "Cria criativos para campanhas de tráfego.",
+        descBroadcast: "Analisa e configura broadcasts de mensagens.",
+        descDevelopment: "Constrói e mantém aplicações/dashboards.",
+        descManagement: "Responsável por outras equipes.",
+        descOwner: "Dono da empresa.",
     },
     en: {
         projects: "Projects",
@@ -444,6 +473,10 @@ const translations = {
         statusDeactivated: "Deactivated",
         statusPaused: "Paused",
         statusBroad: "Broad",
+        filters: "Filters",
+        clearFilters: "Clear Filters",
+        minProfiles: "Min. Profiles",
+        minPages: "Min. Pages",
         
         // Profiles
         addProfile: "Add Profile",
@@ -534,6 +567,30 @@ const translations = {
         noIntegrations: "No integrations configured.",
         areYouSureDeleteIntegration: "Are you sure you want to delete this integration?",
         entityIntegration: "Integration",
+
+        // User Roles
+        roleContent: "Content",
+        roleSupport: "Support",
+        roleStructure: "Structure",
+        roleAnalyst: "Analyst",
+        roleTraffic: "Analyst", // Legacy support, renamed to Analyst in UI
+        roleCreatives: "Creatives",
+        roleBroadcast: "Broadcast",
+        roleDevelopment: "Development",
+        roleManagement: "Management",
+        roleOwner: "Owner",
+        
+        // User Role Descriptions
+        descContent: "Creates content for pages/domains.",
+        descSupport: "Supports content, servers, domain creation.",
+        descStructure: "Manages profiles, pages, linking for new projects.",
+        descAnalyst: "Manages ads, project analysis, decision making.",
+        descTraffic: "Manages ads, project analysis, decision making.", // Legacy
+        descCreatives: "Creates creatives for traffic campaigns.",
+        descBroadcast: "Analyzes and configures message broadcasts.",
+        descDevelopment: "Builds and maintains applications/dashboards.",
+        descManagement: "Responsible for other teams.",
+        descOwner: "Company owner.",
     },
     es: {
         projects: "Proyectos",
@@ -698,6 +755,10 @@ const translations = {
         statusDeactivated: "Desactivado",
         statusPaused: "Pausado",
         statusBroad: "Broadcast",
+        filters: "Filtros",
+        clearFilters: "Limpiar Filtros",
+        minProfiles: "Min. Perfiles",
+        minPages: "Min. Páginas",
         
         // Profiles
         addProfile: "Añadir Perfil",
@@ -788,6 +849,30 @@ const translations = {
         noIntegrations: "No hay integraciones configuradas.",
         areYouSureDeleteIntegration: "¿Está seguro de que desea eliminar esta integración?",
         entityIntegration: "Integración",
+
+        // User Roles
+        roleContent: "Contenido",
+        roleSupport: "Soporte",
+        roleStructure: "Estructura",
+        roleAnalyst: "Analista",
+        roleTraffic: "Analista", // Legacy support, renamed to Analyst in UI
+        roleCreatives: "Creatives",
+        roleBroadcast: "Broadcast",
+        roleDevelopment: "Desarrollo",
+        roleManagement: "Gestión",
+        roleOwner: "Propietario",
+        
+        // User Role Descriptions
+        descContent: "Crea contenido para páginas/dominios.",
+        descSupport: "Soporte para contenido, servidores, creación de dominios.",
+        descStructure: "Gestiona perfiles, páginas y estructura de nuevos proyectos.",
+        descAnalyst: "Gestiona anuncios, análisis de proyectos y toma de decisiones.",
+        descTraffic: "Gestiona anuncios, análisis de proyectos y toma de decisiones.", // Legacy
+        descCreatives: "Crea creativos para campañas de tráfico.",
+        descBroadcast: "Analiza y configura broadcasts de mensajes.",
+        descDevelopment: "Construye y mantiene aplicaciones/paneles.",
+        descManagement: "Responsable de otros equipos.",
+        descOwner: "Dueño de la empresa.",
     }
 };
 
@@ -798,7 +883,7 @@ export const App: React.FC = () => {
         }
         return 'light';
     });
-    const [user, setUser] = useState<{ name: string } | null>(null);
+    const [user, setUser] = useState<User | null>(null);
     const [view, setView] = useState<View>('dashboard');
     const [language, setLanguage] = useState<'pt' | 'en' | 'es'>('pt');
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -807,6 +892,7 @@ export const App: React.FC = () => {
     const [domainViewMode, setDomainViewMode] = useState<DomainViewMode>('grouped');
     const [bmDetailViewType, setBmDetailViewType] = useState<'adAccounts' | 'apps'>('adAccounts');
     const [loginError, setLoginError] = useState('');
+    const [users, setUsersList] = useState<User[]>([]);
 
     // Data Fetching Hooks
     const projects = useSupabase<Project>('projects');
@@ -816,6 +902,8 @@ export const App: React.FC = () => {
     const profiles = useSupabase<Profile>('profiles');
     const pages = useSupabase<Page>('pages');
     const integrations = useSupabase<Integration>('integrations');
+    // Remove useSupabase call for users to avoid error when table doesn't exist
+    // const users = useSupabase<User>('users');
 
     const t = translations[language];
 
@@ -833,17 +921,44 @@ export const App: React.FC = () => {
         
         const savedUser = localStorage.getItem('projectHubUser');
         if (savedUser) setUser(JSON.parse(savedUser));
+        
+        // Fetch users using api.getAll() which handles the fallback
+        const fetchUsers = async () => {
+            try {
+                const userList = await userApi.getAll();
+                setUsersList(userList);
+            } catch (e) {
+                console.error("Failed to fetch users", e);
+            }
+        };
+        fetchUsers();
     }, []);
 
-    const handleLogin = (u: string, p: string) => {
-        // Simple mock login
-        if (u === 'admin' && p === 'admin') {
-            const userData = { name: 'Admin' };
-            setUser(userData);
-            localStorage.setItem('projectHubUser', JSON.stringify(userData));
-            setLoginError('');
-        } else {
+    const handleLogin = async (u: string, p: string) => {
+        try {
+            const authenticatedUser = await userApi.login(u, p);
+            if (authenticatedUser) {
+                setUser(authenticatedUser);
+                localStorage.setItem('projectHubUser', JSON.stringify(authenticatedUser));
+                setLoginError('');
+            } else {
+                setLoginError(translations[language].loginFailed);
+            }
+        } catch (e) {
             setLoginError(translations[language].loginFailed);
+        }
+    };
+
+    const handleRegister = async (newUser: Omit<User, 'id'>) => {
+        const registeredUser = await userApi.register(newUser);
+        if (registeredUser) {
+            // Optionally auto-login or show success
+            setUser(registeredUser);
+            localStorage.setItem('projectHubUser', JSON.stringify(registeredUser));
+            setLoginError('');
+            // Refresh user list
+            const updatedUsers = await userApi.getAll();
+            setUsersList(updatedUsers);
         }
     };
 
@@ -1076,7 +1191,7 @@ export const App: React.FC = () => {
     };
 
     if (!user) {
-        return <LoginView onLogin={handleLogin} t={t} error={loginError} />;
+        return <LoginView onLogin={handleLogin} onRegister={handleRegister} t={t} error={loginError} />;
     }
 
     // Options for Selects
@@ -1091,7 +1206,7 @@ export const App: React.FC = () => {
     const renderView = () => {
         switch (view) {
             case 'projects':
-                return <ProjectsView t={t} projects={projects} onSaveProject={handleSaveProject} getCountryName={getCountryName} getLanguageName={getLanguageName} countryOptions={countryOptions} languageOptions={languageOptions} domains={domains} bms={bms} partnerships={partnerships} profiles={profiles} pages={pages} />;
+                return <ProjectsView t={t} projects={projects} onSaveProject={handleSaveProject} getCountryName={getCountryName} getLanguageName={getLanguageName} countryOptions={countryOptions} languageOptions={languageOptions} domains={domains} bms={bms} partnerships={partnerships} profiles={profiles} pages={pages} users={users} />;
             case 'domains':
                 return <DomainsView t={t} domains={domains} partnerships={partnerships} projects={projects} onSaveDomain={handleSaveDomain} onDeleteDomain={handleDeleteDomain} onToggleDomainActive={handleToggleDomainActive} onToggleSubdomainActive={handleToggleSubdomainActive} getCountryName={getCountryName} getLanguageName={getLanguageName} countryOptions={countryOptions} languageOptions={languageOptions} projectOptions={projectOptions} viewMode={domainViewMode} setViewMode={setDomainViewMode} />;
             case 'bms':
@@ -1105,7 +1220,7 @@ export const App: React.FC = () => {
             case 'pages':
                 return <PagesView t={t} pages={pages} profiles={profiles} integrations={integrations} onSavePage={handleSavePage} onDeletePage={handleDeletePage} onTranscribeImage={transcribePageNamesFromImage} onBulkSavePages={handleBulkSavePages} />;
             case 'configuration':
-                return <ConfigurationView t={t} integrations={integrations} onSaveIntegration={handleSaveIntegration} onDeleteIntegration={handleDeleteIntegration} />;
+                return <ConfigurationView t={t} integrations={integrations} onSaveIntegration={handleSaveIntegration} onDeleteIntegration={handleDeleteIntegration} user={user} />;
             case 'history':
                 return <DashboardView t={t} />;
             case 'dashboard':

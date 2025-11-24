@@ -1,5 +1,7 @@
 
 
+
+
 export type View = 'projects' | 'domains' | 'profiles' | 'pages' | 'bms' | 'chatbots' | 'history' | 'dashboard' | 'configuration' | 'partnerships';
 export type DomainViewMode = 'grouped' | 'language';
 
@@ -10,6 +12,16 @@ export enum ProfileRole {
     Contingency = 'Contingency',
     Bot = 'Bot',
     Backup = 'Backup',
+}
+
+export type UserRole = 'Content' | 'Support' | 'Structure' | 'Analyst' | 'Creatives' | 'Broadcast' | 'Development' | 'Management' | 'Owner';
+
+export interface User {
+    id: string;
+    username: string;
+    password?: string; // Only used during auth/creation
+    name: string;
+    role: UserRole;
 }
 
 export interface Subdomain {
@@ -125,7 +137,7 @@ export interface Profile {
 }
 
 export type ProjectStatus = 'In Progress' | 'Pending' | 'Active' | 'Deactivated' | 'Paused' | 'Broad';
-export type Analyst = 'Daniel' | 'Carlos' | 'Tiago' | '';
+export type Analyst = string;
 
 export interface Project {
     id: string;
@@ -150,7 +162,7 @@ export interface Project {
 export interface HistoryEntry {
     id: string;
     timestamp: Date;
-    entityType: 'Domain' | 'Subdomain' | 'BM' | 'Project' | 'App' | 'Page' | 'Profile' | 'Partnership' | 'Integration';
+    entityType: 'Domain' | 'Subdomain' | 'BM' | 'Project' | 'App' | 'Page' | 'Profile' | 'Partnership' | 'Integration' | 'User';
     entityName: string;
     action: 'Create' | 'Update' | 'Delete' | 'Activate' | 'Deactivate';
     details?: string;

@@ -9,7 +9,7 @@ import { EntityHistory } from './EntityHistory';
 interface PartnershipsViewProps {
     t: any;
     partnerships: Partnership[];
-    onSavePartnership: (p: Omit<Partnership, 'id'> & { id?: string }) => void;
+    onSavePartnership: (p: Omit<Partnership, 'id'> & { id?: string }) => Promise<void> | void;
     onDeletePartnership: (p: Partnership) => void;
     projectOptions: { value: string; label: string }[];
     profileOptions: { value: string; label: string }[];
@@ -22,8 +22,8 @@ export const PartnershipsView: React.FC<PartnershipsViewProps> = ({ t, partnersh
     const [partnershipToDelete, setPartnershipToDelete] = useState<Partnership | null>(null);
     const [activeTab, setActiveTab] = useState<'list' | 'history'>('list');
 
-    const handleSave = (data: Omit<Partnership, 'id'> & { id?: string }) => {
-        onSavePartnership(data);
+    const handleSave = async (data: Omit<Partnership, 'id'> & { id?: string }) => {
+        await onSavePartnership(data);
         setIsModalOpen(false);
         setEditingPartnership(null);
     };

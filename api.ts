@@ -1,14 +1,81 @@
 
 import { supabase } from './supabaseClient';
-import { Project, Domain, BM, Partnership, Profile, Page, Integration, HistoryEntry } from './types';
+import { Project, Domain, BM, Partnership, Profile, Page, Integration, HistoryEntry, User } from './types';
 
 // --- History Helper ---
 const addHistoryEntry = async (entry: Omit<HistoryEntry, 'id' | 'timestamp'>) => {
-    await supabase.from('history').insert({
-        ...entry,
-        id: crypto.randomUUID(),
-        timestamp: new Date().toISOString()
-    });
+    try {
+        await supabase.from('history').insert({
+            ...entry,
+            id: crypto.randomUUID(),
+            timestamp: new Date().toISOString()
+        });
+    } catch (e) {
+        // Silent fail if history table missing or network error, to keep app usable
+        console.warn("History logging failed", e);
+    }
+};
+
+// --- User/Auth API ---
+export const userApi = {
+    login: async (username: string, password: string): Promise<User | null> => {
+        // Default Admin Hardcoded Check
+        if (username === 'admin' && password === 'useradmin') {
+            return {
+                id: 'default-admin',
+                name: 'Administrator',
+                username: 'admin',
+                role: 'Owner'
+            };
+        }
+
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('username', username)
+            .eq('password', password)
+            .single();
+        
+        if (error) {
+            if (error.code !== 'PGRST116') { // PGRST116 is row not found
+                 console.error("Supabase login error:", error);
+            }
+            return null;
+        }
+
+        return data as User;
+    },
+    register: async (user: Omit<User, 'id'>): Promise<User | null> => {
+        const id = crypto.randomUUID();
+        const newUser = { ...user, id };
+
+        // Check duplicates in Supabase
+        const { data: existing, error: checkError } = await supabase.from('users').select('id').eq('username', user.username).single();
+        
+        if (checkError && checkError.code !== 'PGRST116') {
+            throw checkError; 
+        }
+        if (existing) throw new Error('Username already exists');
+
+        const { data, error } = await supabase.from('users').insert([newUser]).select().single();
+        
+        if (error) throw error;
+        addHistoryEntry({ entityType: 'User', entityName: user.name, action: 'Create', details: `Role: ${user.role}` });
+        return data as User;
+    },
+    getAll: async (): Promise<User[]> => {
+        const { data, error } = await supabase.from('users').select('*');
+        if (error) throw error;
+        return data as User[];
+    },
+    updateRole: async (id: string, role: string) => {
+        const { error } = await supabase.from('users').update({ role }).eq('id', id);
+        if (error) throw error;
+    },
+    delete: async (id: string) => {
+        const { error } = await supabase.from('users').delete().eq('id', id);
+        if (error) throw error;
+    }
 };
 
 // --- Projects ---

@@ -1,8 +1,11 @@
 
+
+
 import React, { useState } from 'react';
-import { Integration } from '../../types';
-import { PlusIcon, EditIcon, TrashIcon, SettingsIcon } from '../icons';
+import { Integration, User, UserRole } from '../../types';
+import { PlusIcon, EditIcon, TrashIcon, SettingsIcon, UsersIcon } from '../icons';
 import { AddIntegrationModal } from '../modals/AddIntegrationModal';
+import { UserManagementModal } from '../modals/UserManagementModal';
 import { ConfirmDeleteModal } from '../ui/ConfirmDeleteModal';
 import { EntityHistory } from './EntityHistory';
 
@@ -11,10 +14,12 @@ interface ConfigurationViewProps {
     integrations: Integration[];
     onSaveIntegration: (data: Omit<Integration, 'id'> & { id?: string }) => void;
     onDeleteIntegration: (integration: Integration) => void;
+    user?: User | null;
 }
 
-export const ConfigurationView: React.FC<ConfigurationViewProps> = ({ t, integrations, onSaveIntegration, onDeleteIntegration }) => {
+export const ConfigurationView: React.FC<ConfigurationViewProps> = ({ t, integrations, onSaveIntegration, onDeleteIntegration, user }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [editingIntegration, setEditingIntegration] = useState<Integration | null>(null);
     const [integrationToDelete, setIntegrationToDelete] = useState<Integration | null>(null);
     const [activeTab, setActiveTab] = useState<'list' | 'history'>('list');
@@ -42,10 +47,22 @@ export const ConfigurationView: React.FC<ConfigurationViewProps> = ({ t, integra
         setEditingIntegration(null);
     };
 
+    const canManageUsers = user?.role === 'Owner' || user?.role === 'Management';
+
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-latte-text dark:text-mocha-text">{t.configuration}</h1>
+                
+                {canManageUsers && (
+                    <button 
+                        onClick={() => setIsUserModalOpen(true)} 
+                        className="flex items-center space-x-2 bg-latte-blue text-white dark:bg-mocha-blue dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                    >
+                        <UsersIcon className="w-5 h-5" />
+                        <span>Manage Users</span>
+                    </button>
+                )}
             </div>
 
             <div className="flex space-x-1 bg-latte-surface0 dark:bg-mocha-surface0 p-1 rounded-lg w-fit mb-6">
@@ -112,6 +129,12 @@ export const ConfigurationView: React.FC<ConfigurationViewProps> = ({ t, integra
                 onSave={handleSave}
                 t={t}
                 editingIntegration={editingIntegration}
+            />
+
+            <UserManagementModal 
+                isOpen={isUserModalOpen}
+                onClose={() => setIsUserModalOpen(false)}
+                t={t}
             />
 
             <ConfirmDeleteModal

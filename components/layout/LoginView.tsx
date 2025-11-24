@@ -1,20 +1,27 @@
 import React, { useState } from 'react';
 import { MtLogoIcon, LoginArtIcon } from '../icons';
+import { RegisterModal } from '../modals/RegisterModal';
+import { User } from '../../types';
 
 interface LoginViewProps {
-    onLogin: (user: string, pass: string) => void;
+    onLogin: (user: string, pass: string) => Promise<void>;
+    onRegister: (user: Omit<User, 'id'>) => Promise<void>;
     t: any;
     error: string;
 }
 
-export const LoginView: React.FC<LoginViewProps> = ({ onLogin, t, error }) => {
+export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, t, error }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showMainConstellation, setShowMainConstellation] = useState(true);
+    const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        onLogin(username, password);
+        setIsLoading(true);
+        await onLogin(username, password);
+        setIsLoading(false);
     };
 
     return (
@@ -52,10 +59,23 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, t, error }) => {
                         <div>
                             <button
                                 type="submit"
-                                className="w-full px-4 py-2.5 rounded-lg bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust font-semibold hover:opacity-90 transition-opacity"
+                                disabled={isLoading}
+                                className="w-full px-4 py-2.5 rounded-lg bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
                             >
-                                {t.login}
+                                {isLoading ? 'Logging in...' : t.login}
                             </button>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-sm text-latte-subtext1 dark:text-mocha-subtext1">
+                                Don't have an account?{' '}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsRegisterModalOpen(true)}
+                                    className="text-latte-mauve dark:text-mocha-mauve font-semibold hover:underline"
+                                >
+                                    Register here
+                                </button>
+                            </p>
                         </div>
                     </form>
                 </div>
@@ -74,6 +94,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, t, error }) => {
                     showMainConstellation={showMainConstellation}
                 />
             </div>
+
+            <RegisterModal 
+                isOpen={isRegisterModalOpen} 
+                onClose={() => setIsRegisterModalOpen(false)} 
+                onRegister={onRegister}
+                t={t}
+            />
         </div>
     );
 };
