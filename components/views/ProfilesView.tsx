@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef } from 'react';
 import { Profile, Page } from '../../types';
 import { PlusIcon, EditIcon, TrashIcon, ProfileIcon, ExternalLinkIcon, UploadCloudIcon, DownloadIcon } from '../icons';
@@ -16,9 +17,10 @@ interface ProfilesViewProps {
     onDeleteProfile: (profile: Profile) => void;
     onParseProfiles: (files: File[]) => Promise<Partial<Profile>[]>;
     onBulkSaveProfiles: (profiles: Partial<Profile>[]) => Promise<{ success: boolean; errors: { facebookId: string, message: string }[] }>;
+    hasApiKey: boolean;
 }
 
-export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, onSaveProfile, onDeleteProfile, onParseProfiles, onBulkSaveProfiles }) => {
+export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, onSaveProfile, onDeleteProfile, onParseProfiles, onBulkSaveProfiles, hasApiKey }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
     const [profileToDelete, setProfileToDelete] = useState<Profile | null>(null);
@@ -177,18 +179,26 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, 
                         </button>
                     )}
 
-                    <button 
-                        onClick={handleBulkUploadClick} 
-                        disabled={isParsing}
-                        className="flex items-center space-x-2 bg-latte-sky text-white dark:bg-mocha-sky dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
-                    >
-                        {isParsing ? (
-                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
-                            <UploadCloudIcon className="w-5 h-5" />
+                    <div className="relative group">
+                        <button 
+                            onClick={handleBulkUploadClick} 
+                            disabled={isParsing || !hasApiKey}
+                            className="flex items-center space-x-2 bg-latte-sky text-white dark:bg-mocha-sky dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isParsing ? (
+                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                                <UploadCloudIcon className="w-5 h-5" />
+                            )}
+                            <span>{isParsing ? t.parsingProfiles : t.addProfilesBulk}</span>
+                        </button>
+                        {!hasApiKey && (
+                            <div className="absolute bottom-full mb-2 right-0 w-64 p-2 bg-latte-surface2 dark:bg-mocha-surface2 rounded shadow-lg text-xs z-10 text-latte-text dark:text-mocha-text border border-latte-overlay0 dark:border-mocha-overlay0 hidden group-hover:block">
+                                {t.aiDisabledWarning} <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-latte-mauve dark:text-mocha-mauve underline font-bold ml-1">{t.getApiKey}</a>
+                            </div>
                         )}
-                        <span>{isParsing ? t.parsingProfiles : t.addProfilesBulk}</span>
-                    </button>
+                    </div>
+                    
                     <input 
                         type="file" 
                         ref={fileInputRef} 

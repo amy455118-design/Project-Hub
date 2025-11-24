@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Page, Integration, Profile } from '../../types';
 import { PlusIcon, EditIcon, TrashIcon, PageIcon, LayersIcon, UploadCloudIcon } from '../icons';
@@ -18,9 +19,10 @@ interface PagesViewProps {
     onDeletePage: (page: Page) => void;
     onTranscribeImage: (base64: string) => Promise<string[]>;
     onBulkSavePages: (pages: { name: string, facebookId: string }[]) => Promise<{ success: boolean; errors: { facebookId: string, message: string }[] }>;
+    hasApiKey: boolean;
 }
 
-export const PagesView: React.FC<PagesViewProps> = ({ t, pages, profiles, integrations, onSavePage, onDeletePage, onTranscribeImage, onBulkSavePages }) => {
+export const PagesView: React.FC<PagesViewProps> = ({ t, pages, profiles, integrations, onSavePage, onDeletePage, onTranscribeImage, onBulkSavePages, hasApiKey }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPage, setEditingPage] = useState<Page | null>(null);
     const [pageToDelete, setPageToDelete] = useState<Page | null>(null);
@@ -81,10 +83,21 @@ export const PagesView: React.FC<PagesViewProps> = ({ t, pages, profiles, integr
                         <span>{t.importFromIntegration}</span>
                     </button>
 
-                    <button onClick={handleBulkAddClick} className="flex items-center space-x-2 bg-latte-sky text-white dark:bg-mocha-sky dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">
-                        <LayersIcon className="w-5 h-5" />
-                        <span>{t.addPagesBulk}</span>
-                    </button>
+                    <div className="relative group">
+                        <button 
+                            onClick={handleBulkAddClick} 
+                            disabled={!hasApiKey}
+                            className="flex items-center space-x-2 bg-latte-sky text-white dark:bg-mocha-sky dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <LayersIcon className="w-5 h-5" />
+                            <span>{t.addPagesBulk}</span>
+                        </button>
+                         {!hasApiKey && (
+                            <div className="absolute bottom-full mb-2 right-0 w-64 p-2 bg-latte-surface2 dark:bg-mocha-surface2 rounded shadow-lg text-xs z-10 text-latte-text dark:text-mocha-text border border-latte-overlay0 dark:border-mocha-overlay0 hidden group-hover:block">
+                                {t.aiDisabledWarning} <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-latte-mauve dark:text-mocha-mauve underline font-bold ml-1">{t.getApiKey}</a>
+                            </div>
+                        )}
+                    </div>
 
                     <button onClick={handleAddClick} className="flex items-center space-x-2 bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">
                         <PlusIcon className="w-5 h-5" />

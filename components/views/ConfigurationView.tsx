@@ -1,6 +1,5 @@
 
 
-
 import React, { useState } from 'react';
 import { Integration, User, UserRole } from '../../types';
 import { PlusIcon, EditIcon, TrashIcon, SettingsIcon, UsersIcon } from '../icons';
@@ -15,9 +14,11 @@ interface ConfigurationViewProps {
     onSaveIntegration: (data: Omit<Integration, 'id'> & { id?: string }) => void;
     onDeleteIntegration: (integration: Integration) => void;
     user?: User | null;
+    userApiKey: string;
+    onApiKeyChange: (key: string) => void;
 }
 
-export const ConfigurationView: React.FC<ConfigurationViewProps> = ({ t, integrations, onSaveIntegration, onDeleteIntegration, user }) => {
+export const ConfigurationView: React.FC<ConfigurationViewProps> = ({ t, integrations, onSaveIntegration, onDeleteIntegration, user, userApiKey, onApiKeyChange }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [editingIntegration, setEditingIntegration] = useState<Integration | null>(null);
@@ -63,6 +64,30 @@ export const ConfigurationView: React.FC<ConfigurationViewProps> = ({ t, integra
                         <span>Manage Users</span>
                     </button>
                 )}
+            </div>
+            
+            <div className="bg-latte-crust dark:bg-mocha-crust p-6 rounded-xl shadow-md border border-latte-surface0 dark:border-mocha-surface0 mb-8">
+                <h2 className="text-xl font-bold text-latte-text dark:text-mocha-text mb-4 border-b border-latte-surface1 dark:border-mocha-surface1 pb-2">API Configuration</h2>
+                <div className="max-w-xl">
+                    <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-2">{t.apiKey}</label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <input 
+                            type="password" 
+                            value={userApiKey} 
+                            onChange={(e) => onApiKeyChange(e.target.value)} 
+                            placeholder={t.apiKeyPlaceholder}
+                            className="flex-grow px-3 py-2 rounded-lg bg-latte-base dark:bg-mocha-base border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none"
+                        />
+                        <a 
+                            href="https://aistudio.google.com/app/apikey" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 bg-latte-surface2 dark:bg-mocha-surface2 text-latte-text dark:text-mocha-text rounded-lg font-semibold hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 transition-colors text-center whitespace-nowrap flex items-center justify-center"
+                        >
+                            {t.getApiKey}
+                        </a>
+                    </div>
+                </div>
             </div>
 
             <div className="flex space-x-1 bg-latte-surface0 dark:bg-mocha-surface0 p-1 rounded-lg w-fit mb-6">

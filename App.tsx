@@ -195,6 +195,10 @@ const translations = {
         clearFilters: "Limpar Filtros",
         minProfiles: "Mín. Perfis",
         minPages: "Mín. Páginas",
+        apiKey: "Chave da API",
+        apiKeyPlaceholder: "Insira sua chave da API do Google AI Studio...",
+        getApiKey: "Obter Chave da API",
+        aiDisabledWarning: "Recursos de IA desativados. Configure sua chave da API nas configurações.",
 
         // Profiles
         addProfile: "Adicionar Perfil",
@@ -477,6 +481,10 @@ const translations = {
         clearFilters: "Clear Filters",
         minProfiles: "Min. Profiles",
         minPages: "Min. Pages",
+        apiKey: "API Key",
+        apiKeyPlaceholder: "Enter your Google AI Studio API Key...",
+        getApiKey: "Get API Key",
+        aiDisabledWarning: "AI features disabled. Please configure your API Key in Settings.",
         
         // Profiles
         addProfile: "Add Profile",
@@ -759,6 +767,10 @@ const translations = {
         clearFilters: "Limpiar Filtros",
         minProfiles: "Min. Perfiles",
         minPages: "Min. Páginas",
+        apiKey: "Clave de API",
+        apiKeyPlaceholder: "Ingrese su clave de API de Google AI Studio...",
+        getApiKey: "Obtener Clave de API",
+        aiDisabledWarning: "Funciones de IA deshabilitadas. Configure su clave de API en la configuración.",
         
         // Profiles
         addProfile: "Añadir Perfil",
@@ -869,7 +881,7 @@ const translations = {
         descAnalyst: "Gestiona anuncios, análisis de proyectos y toma de decisiones.",
         descTraffic: "Gestiona anuncios, análisis de proyectos y toma de decisiones.", // Legacy
         descCreatives: "Crea creativos para campañas de tráfico.",
-        descBroadcast: "Analiza y configura broadcasts de mensajes.",
+        descBroadcast: "Analisa y configura broadcasts de mensajes.",
         descDevelopment: "Construye y mantiene aplicaciones/paneles.",
         descManagement: "Responsable de otros equipos.",
         descOwner: "Dueño de la empresa.",
@@ -893,6 +905,17 @@ export const App: React.FC = () => {
     const [bmDetailViewType, setBmDetailViewType] = useState<'adAccounts' | 'apps'>('adAccounts');
     const [loginError, setLoginError] = useState('');
     const [users, setUsersList] = useState<User[]>([]);
+    
+    // API Key State
+    const [userApiKey, setUserApiKey] = useState(localStorage.getItem('projectHubApiKey') || '');
+
+    const handleApiKeyChange = (key: string) => {
+        setUserApiKey(key);
+        localStorage.setItem('projectHubApiKey', key);
+    };
+
+    // Determine the effective API key (User provided > Environment)
+    const hasApiKey = !!userApiKey || !!process.env.API_KEY;
 
     // Data Fetching Hooks
     const projects = useSupabase<Project>('projects');
@@ -1027,7 +1050,10 @@ export const App: React.FC = () => {
 
     // --- AI Handlers ---
     const parseProfilesFromFiles = async (files: File[]): Promise<Partial<Profile>[]> => {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const apiKey = userApiKey || process.env.API_KEY;
+        if (!apiKey) return [];
+
+        const ai = new GoogleGenAI({ apiKey: apiKey });
         
         let combinedText = "";
         for (const file of files) {
@@ -1120,11 +1146,14 @@ export const App: React.FC = () => {
     };
 
     const transcribePageNamesFromImage = async (base64Image: string): Promise<string[]> => {
+        const apiKey = userApiKey || process.env.API_KEY;
+        if (!apiKey) return [];
+
         try {
             const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
             const mimeType = base64Image.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)?.[1] || 'image/png';
 
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = new GoogleGenAI({ apiKey: apiKey });
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-flash',
                 contents: {
@@ -1216,11 +1245,11 @@ export const App: React.FC = () => {
             case 'partnerships':
                 return <PartnershipsView t={t} partnerships={partnerships} onSavePartnership={handleSavePartnership} onDeletePartnership={handleDeletePartnership} projectOptions={projectOptions} profileOptions={profileOptions} bmOptions={bmOptions} />;
             case 'profiles':
-                return <ProfilesView t={t} profiles={profiles} pages={pages} onSaveProfile={handleSaveProfile} onDeleteProfile={handleDeleteProfile} onParseProfiles={parseProfilesFromFiles} onBulkSaveProfiles={handleBulkSaveProfiles} />;
+                return <ProfilesView t={t} profiles={profiles} pages={pages} onSaveProfile={handleSaveProfile} onDeleteProfile={handleDeleteProfile} onParseProfiles={parseProfilesFromFiles} onBulkSaveProfiles={handleBulkSaveProfiles} hasApiKey={hasApiKey} />;
             case 'pages':
-                return <PagesView t={t} pages={pages} profiles={profiles} integrations={integrations} onSavePage={handleSavePage} onDeletePage={handleDeletePage} onTranscribeImage={transcribePageNamesFromImage} onBulkSavePages={handleBulkSavePages} />;
+                return <PagesView t={t} pages={pages} profiles={profiles} integrations={integrations} onSavePage={handleSavePage} onDeletePage={handleDeletePage} onTranscribeImage={transcribePageNamesFromImage} onBulkSavePages={handleBulkSavePages} hasApiKey={hasApiKey} />;
             case 'configuration':
-                return <ConfigurationView t={t} integrations={integrations} onSaveIntegration={handleSaveIntegration} onDeleteIntegration={handleDeleteIntegration} user={user} />;
+                return <ConfigurationView t={t} integrations={integrations} onSaveIntegration={handleSaveIntegration} onDeleteIntegration={handleDeleteIntegration} user={user} userApiKey={userApiKey} onApiKeyChange={handleApiKeyChange} />;
             case 'history':
                 return <DashboardView t={t} />;
             case 'dashboard':
