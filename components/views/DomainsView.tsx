@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { Domain, Partnership, Subdomain, Project } from '../../types';
 import { DomainViewMode } from '../../types';
@@ -72,9 +73,8 @@ export const DomainsView: React.FC<DomainsViewProps> = ({ t, domains, partnershi
                 const activeSubdomains = d.subdomains.filter(s => s.isActive);
                 const inactiveSubdomainsForThisDomain = d.subdomains.filter(s => !s.isActive);
 
-                if (activeSubdomains.length > 0 || inactiveSubdomainsForThisDomain.length === 0) {
-                    active.push({ ...d, subdomains: activeSubdomains });
-                }
+                // Always add to active list if parent is active, even if subdomains are empty
+                active.push({ ...d, subdomains: activeSubdomains });
 
                 inactiveSubs.push(...inactiveSubdomainsForThisDomain.map(s => ({ ...s, parentDomain: d })));
             } else {
@@ -173,14 +173,6 @@ export const DomainsView: React.FC<DomainsViewProps> = ({ t, domains, partnershi
                             {inactiveSubdomains.length > 0 && (
                                 <div className="mb-8">
                                     <h3 className="text-xl font-semibold text-latte-subtext0 dark:text-mocha-subtext0 mb-3">{t.inactiveSubdomains}</h3>
-                                    <DomainList
-                                        domains={[]} // Not used for Subdomain-only display in this implementation block but required by TS
-                                        partnerships={partnerships}
-                                        // We'll reuse the logic directly here or adapt DomainList to accept subdomains only?
-                                        // Actually, `DomainList` expects `Domain[]`. The code block below handles subdomains manually.
-                                        // Let's keep the manual table render for inactive subdomains as it was in the previous version.
-                                        viewMode={viewMode} t={t} handleEditClick={()=>{}} setDomainToDelete={()=>{}} getCountryName={()=>{return ''}} getLanguageName={()=>{return ''}} handleToggleActive={()=>{}} handleToggleSubdomainActive={()=>{}}
-                                    />
                                     {/* Manually rendering the table for inactive subdomains as in the original code to avoid complex refactoring of DomainList right now */}
                                     <div className="bg-latte-crust dark:bg-mocha-crust p-4 rounded-xl shadow-md mt-2">
                                         <table className="w-full text-left">

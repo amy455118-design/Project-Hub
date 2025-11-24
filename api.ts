@@ -141,10 +141,12 @@ export const domainApi = {
         if (error) throw error;
         addHistoryEntry({ entityType: 'Domain', entityName: name, action: isActive ? 'Activate' : 'Deactivate' });
     },
-    updateSubdomains: async (id: string, subdomains: any[], parentName: string) => {
+    updateSubdomains: async (id: string, subdomains: any[], parentName: string, logEntry?: { name: string, action: HistoryEntry['action'] }) => {
         const { error } = await supabase.from('domains').update({ subdomains }).eq('id', id);
         if (error) throw error;
-        // History entry handled by the caller usually for specificity, or generic update
+        if (logEntry) {
+            addHistoryEntry({ entityType: 'Subdomain', entityName: logEntry.name, action: logEntry.action, details: `Parent: ${parentName}` });
+        }
     }
 };
 

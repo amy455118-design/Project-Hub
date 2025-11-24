@@ -152,7 +152,7 @@ const translations = {
         noChatbots: "Nenhum chatbot/app encontrado.",
         bmParent: "BM Pai",
         editApp: "Editar App",
-        appCredentials: "Credenciais do App",
+        appCredentials: "Credenciales do App",
         step1_label: "Criação",
         step2_label: "Chamadas de API",
         step3_label: "Acesso a Permissões Avançadas",
@@ -779,7 +779,7 @@ const translations = {
         facebookId: "ID de Facebook",
         purchaseDate: "Fecha de Compra",
         supplier: "Proveedor",
-        price: "Precio",
+        price: "Price",
         profileStatus: "Estado del Perfil",
         profileRole: "Rol",
         securityKey: "Clave de Seguridad",
@@ -1015,7 +1015,16 @@ export const App: React.FC = () => {
             const updatedSubdomains = domain.subdomains.map(sub =>
                 sub.id === subdomainId ? { ...sub, isActive } : sub
             );
-            domainApi.updateSubdomains(domainId, updatedSubdomains, domain.name);
+            
+            const subdomain = domain.subdomains.find(s => s.id === subdomainId);
+            const subName = subdomain 
+                ? (subdomain.name.includes('.') ? subdomain.name : `${subdomain.name}.${domain.name}`)
+                : 'Unknown';
+
+            domainApi.updateSubdomains(domainId, updatedSubdomains, domain.name, {
+                name: subName,
+                action: isActive ? 'Activate' : 'Deactivate'
+            });
         }
     };
 
