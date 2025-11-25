@@ -1,10 +1,14 @@
 
 
+
+
+
 import React, { useState, useRef } from 'react';
-import { Profile, Page } from '../../types';
+import { Profile, Page, Integration } from '../../types';
 import { PlusIcon, EditIcon, TrashIcon, ProfileIcon, ExternalLinkIcon, UploadCloudIcon, DownloadIcon } from '../icons';
 import { AddProfileModal } from '../modals/AddProfileModal';
 import { AddProfilesBulkModal } from '../modals/AddProfilesBulkModal';
+import { ImportProfilesFromIntegrationModal } from '../modals/ImportProfilesFromIntegrationModal';
 import { ConfirmDeleteModal } from '../ui/ConfirmDeleteModal';
 import { Checkbox } from '../ui/Checkbox';
 import { EntityHistory } from './EntityHistory';
@@ -13,6 +17,7 @@ interface ProfilesViewProps {
     t: any;
     profiles: Profile[];
     pages: Page[];
+    integrations: Integration[];
     onSaveProfile: (profileData: Omit<Profile, 'id'> & { id?: string }) => void;
     onDeleteProfile: (profile: Profile) => void;
     onParseProfiles: (files: File[]) => Promise<Partial<Profile>[]>;
@@ -20,12 +25,13 @@ interface ProfilesViewProps {
     hasApiKey: boolean;
 }
 
-export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, onSaveProfile, onDeleteProfile, onParseProfiles, onBulkSaveProfiles, hasApiKey }) => {
+export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, integrations, onSaveProfile, onDeleteProfile, onParseProfiles, onBulkSaveProfiles, hasApiKey }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
     const [profileToDelete, setProfileToDelete] = useState<Profile | null>(null);
     
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+    const [isImportIntegrationModalOpen, setIsImportIntegrationModalOpen] = useState(false);
     const [parsedProfiles, setParsedProfiles] = useState<Partial<Profile>[]>([]);
     const [isParsing, setIsParsing] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -60,6 +66,10 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, 
         fileInputRef.current?.click();
     };
 
+    const handleImportIntegrationClick = () => {
+        setIsImportIntegrationModalOpen(true);
+    };
+
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             setIsParsing(true);
@@ -71,6 +81,12 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, 
             // Reset input
             e.target.value = ''; 
         }
+    };
+    
+    const handleIntegrationImport = (profiles: Partial<Profile>[]) => {
+        setParsedProfiles(profiles);
+        setIsImportIntegrationModalOpen(false);
+        setIsBulkModalOpen(true);
     };
     
     const handleBulkSave = async (profilesToSave: Partial<Profile>[]) => {
@@ -169,6 +185,11 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, 
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-latte-text dark:text-mocha-text">{t.profiles}</h1>
                 <div className="flex space-x-2">
+                    <button onClick={handleImportIntegrationClick} className="flex items-center space-x-2 bg-latte-teal text-white dark:bg-mocha-teal dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">
+                        <UploadCloudIcon className="w-5 h-5" />
+                        <span>{t.importFromIntegration}</span>
+                    </button>
+
                     {selectedProfileIds.size > 0 && (
                         <button
                             onClick={handleExport}
@@ -315,6 +336,15 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, 
                 t={t}
                 initialProfiles={parsedProfiles}
             />
+            
+            <ImportProfilesFromIntegrationModal
+                isOpen={isImportIntegrationModalOpen}
+                onClose={() => setIsImportIntegrationModalOpen(false)}
+                integrations={integrations}
+                onImport={handleIntegrationImport}
+                t={t}
+            />
+
             <ConfirmDeleteModal
                 isOpen={!!profileToDelete}
                 onClose={() => setProfileToDelete(null)}

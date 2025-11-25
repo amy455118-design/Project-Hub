@@ -243,6 +243,7 @@ const translations = {
         exportToAdsPower: "Exportar para AdsPower",
         selected: "Selecionados",
         selectAll: "Selecionar Todos",
+        foundProfiles: "Perfis Encontrados",
 
         // Pages
         addPage: "Adicionar Página",
@@ -529,6 +530,7 @@ const translations = {
         exportToAdsPower: "Export to AdsPower",
         selected: "Selected",
         selectAll: "Select All",
+        foundProfiles: "Found Profiles",
 
         // Pages
         addPage: "Add Page",
@@ -815,6 +817,7 @@ const translations = {
         exportToAdsPower: "Exportar a AdsPower",
         selected: "Seleccionados",
         selectAll: "Seleccionar Todos",
+        foundProfiles: "Perfiles Encontrados",
 
         // Pages
         addPage: "Añadir Página",
@@ -1129,13 +1132,13 @@ export const App: React.FC = () => {
                     emailPassword: p.emailPassword || '',
                     recoveryEmail: p.recoveryEmail || '',
                     purchaseDate: p.purchaseDate ? new Date(p.purchaseDate).toISOString() : new Date().toISOString(),
-                    supplier: 'Bulk Import',
-                    price: 0,
-                    status: 'Stock' as ProfileStatus,
-                    role: ProfileRole.Advertiser,
-                    securityKeys: [],
+                    supplier: p.supplier || 'Bulk Import',
+                    price: p.price || 0,
+                    status: p.status || 'Stock' as ProfileStatus,
+                    role: p.role || ProfileRole.Advertiser,
+                    securityKeys: p.securityKeys || [],
                     accountStatus: 'OK' as AccountStatus,
-                    driveLink: '',
+                    driveLink: p.driveLink || '',
                     pageIds: [],
                     bmIds: [],
                     projectIds: []
@@ -1254,7 +1257,7 @@ export const App: React.FC = () => {
             case 'partnerships':
                 return <PartnershipsView t={t} partnerships={partnerships} onSavePartnership={handleSavePartnership} onDeletePartnership={handleDeletePartnership} projectOptions={projectOptions} profileOptions={profileOptions} bmOptions={bmOptions} />;
             case 'profiles':
-                return <ProfilesView t={t} profiles={profiles} pages={pages} onSaveProfile={handleSaveProfile} onDeleteProfile={handleDeleteProfile} onParseProfiles={parseProfilesFromFiles} onBulkSaveProfiles={handleBulkSaveProfiles} hasApiKey={hasApiKey} />;
+                return <ProfilesView t={t} profiles={profiles} pages={pages} integrations={integrations} onSaveProfile={handleSaveProfile} onDeleteProfile={handleDeleteProfile} onParseProfiles={parseProfilesFromFiles} onBulkSaveProfiles={handleBulkSaveProfiles} hasApiKey={hasApiKey} />;
             case 'pages':
                 return <PagesView t={t} pages={pages} profiles={profiles} integrations={integrations} onSavePage={handleSavePage} onDeletePage={handleDeletePage} onTranscribeImage={transcribePageNamesFromImage} onBulkSavePages={handleBulkSavePages} hasApiKey={hasApiKey} />;
             case 'configuration':
