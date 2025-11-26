@@ -179,9 +179,12 @@ export const bmApi = {
         addHistoryEntry({ entityType: 'BM', entityName: bm.name, action: 'Delete' });
     },
     // Helper to update apps specifically (for chatbots view)
-    updateApps: async (bmId: string, apps: any[], bmName: string) => {
+    updateApps: async (bmId: string, apps: any[], bmName: string, logEntry?: { appName: string, action: 'Update' | 'Create' | 'Delete' }) => {
         const { error } = await supabase.from('bms').update({ apps }).eq('id', bmId);
         if (error) throw error;
+        if (logEntry) {
+            addHistoryEntry({ entityType: 'App', entityName: logEntry.appName, action: logEntry.action, details: `Parent BM: ${bmName}` });
+        }
     }
 };
 
@@ -270,9 +273,83 @@ export const profileApi = {
         addHistoryEntry({ entityType: 'Profile', entityName: profile.name, action: 'Delete' });
     },
     bulkSave: async (profiles: any[]) => {
+        // DEPRECATED in favor of bulkUpsert for editing capabilities, keeping for backward compatibility if needed
         const { error } = await supabase.from('profiles').insert(profiles);
         if(error) throw error;
-        // Log bulk entry?
+    },
+    bulkUpsert: async (profilesData: Partial<Profile>[]) => {
+        // 1. Prepare Data
+        const profilesToUpsert = profilesData.map(p => ({
+            // Explicitly map allowed columns to avoid sending temporary fields like 'email', 'localId', 'error'
+            id: p.id || crypto.randomUUID(),
+            name: p.name,
+            facebookId: p.facebookId,
+            purchaseDate: p.purchaseDate,
+            supplier: p.supplier,
+            price: p.price,
+            status: p.status,
+            role: p.role,
+            securityKeys: p.securityKeys || [],
+            emails: p.emails || [],
+            accountStatus: p.accountStatus,
+            driveLink: p.driveLink,
+            pageIds: p.pageIds || [],
+            bmIds: p.bmIds || [],
+            projectIds: p.projectIds || [],
+            partnershipId: p.partnershipId,
+            recoveryEmail: p.recoveryEmail,
+            emailPassword: p.emailPassword,
+            facebookPassword: p.facebookPassword,
+            twoFactorCode: p.twoFactorCode,
+        }));
+
+        // 2. Upsert Profiles
+        const { error } = await supabase.from('profiles').upsert(profilesToUpsert);
+        if (error) throw error;
+
+        // 3. Sync Pages (Heavy Operation)
+        // Collect all involved page IDs to fetch them
+        const allPageIds = new Set<string>();
+        profilesToUpsert.forEach(p => p.pageIds?.forEach(id => allPageIds.add(id)));
+
+        // Fetch pages to update their profileIds
+        if (allPageIds.size > 0) {
+            const { data: pages } = await supabase.from('pages').select('id, profileIds').in('id', Array.from(allPageIds));
+            
+            if (pages) {
+                const updates = pages.map(page => {
+                    const profileIdsInBatch = new Set(profilesToUpsert.map(p => p.id));
+                    
+                    // 1. Keep profiles that are NOT in the current batch (don't touch them)
+                    const profilesToKeep = (page.profileIds || []).filter((pid: string) => !profileIdsInBatch.has(pid));
+                    
+                    // 2. Find profiles in current batch that claim this page
+                    const profilesAddingThisPage = profilesToUpsert
+                        .filter(p => p.pageIds?.includes(page.id))
+                        .map(p => p.id);
+                    
+                    // 3. Combine
+                    const finalProfileIds = Array.from(new Set([...profilesToKeep, ...profilesAddingThisPage]));
+                    
+                    return {
+                        id: page.id,
+                        profileIds: finalProfileIds
+                    };
+                });
+
+                for (const update of updates) {
+                    await supabase.from('pages').update({ profileIds: update.profileIds }).eq('id', update.id);
+                }
+            }
+        }
+
+        // 4. Log History
+        addHistoryEntry({ 
+            entityType: 'Profile', 
+            entityName: `${profilesToUpsert.length} Profiles`, 
+            action: profilesData.some(p => !!p.id) ? 'Update' : 'Create', 
+            details: 'Bulk Operation' 
+        });
     }
 };
 
@@ -333,11 +410,71 @@ export const pageApi = {
         if (error) throw error;
         addHistoryEntry({ entityType: 'Page', entityName: page.name, action: 'Delete' });
     },
-    bulkSave: async (pages: any[]) => {
-        // Need to check duplicates manually or rely on DB constraint (if any)
-        // For now simple insert
-        const { error } = await supabase.from('pages').insert(pages);
+    bulkDelete: async (ids: string[]) => {
+        const { error } = await supabase.from('pages').delete().in('id', ids);
         if (error) throw error;
+        addHistoryEntry({ entityType: 'Page', entityName: `${ids.length} Pages`, action: 'Delete' });
+    },
+    bulkUpsert: async (pagesData: { id?: string; name: string; facebookId: string; profileIds?: string[] }[]) => {
+        // 1. Prepare Pages Data
+        const pagesToUpsert = pagesData.map(p => ({
+            id: p.id || crypto.randomUUID(),
+            name: p.name,
+            facebookId: p.facebookId,
+            provider: p.id ? undefined : 'Bulk Import', // Keep existing provider if editing, or overwrite? Assuming partial upsert logic or full.
+            // Supabase upsert overwrites fields. If we want to preserve provider, we'd need to read it.
+            // For bulk ops, assuming 'Bulk Import' for new ones is fine. For edits, we might overwrite provider.
+            // To avoid complexity, we'll just set it to 'Bulk Import' or keep if passed (not passed here).
+            profileIds: p.profileIds || [],
+        }));
+
+        // 2. Upsert Pages
+        // We use upsert to handle both new and existing records based on ID
+        const { error } = await supabase.from('pages').upsert(
+            pagesToUpsert.map(p => ({
+                id: p.id,
+                name: p.name,
+                facebookId: p.facebookId,
+                profileIds: p.profileIds,
+                provider: p.provider 
+            }))
+        );
+        if (error) throw error;
+
+        // 3. Sync Profiles (Heavy operation, but necessary for consistency)
+        // We need to ensure the referenced profiles have these page IDs in their list.
+        // Get all unique profile IDs involved
+        const allProfileIds = new Set<string>();
+        pagesToUpsert.forEach(p => p.profileIds.forEach(pid => allProfileIds.add(pid)));
+
+        if (allProfileIds.size > 0) {
+            const { data: profiles } = await supabase.from('profiles').select('id, pageIds').in('id', Array.from(allProfileIds));
+            
+            if (profiles) {
+                const updates = profiles.map(profile => {
+                    const pagesForThisProfile = pagesToUpsert.filter(p => p.profileIds.includes(profile.id)).map(p => p.id);
+                    // Merge existing pageIds with new ones, avoiding duplicates
+                    const existingPageIds = profile.pageIds || [];
+                    const newPageIdsSet = new Set([...existingPageIds, ...pagesForThisProfile]);
+                    return {
+                        id: profile.id,
+                        pageIds: Array.from(newPageIdsSet)
+                    };
+                });
+
+                for (const update of updates) {
+                    await supabase.from('profiles').update({ pageIds: update.pageIds }).eq('id', update.id);
+                }
+            }
+        }
+
+        // 4. History
+        addHistoryEntry({ 
+            entityType: 'Page', 
+            entityName: `${pagesToUpsert.length} Pages`, 
+            action: pagesData.some(p => !!p.id) ? 'Update' : 'Create', 
+            details: 'Bulk Operation'
+        });
     }
 };
 

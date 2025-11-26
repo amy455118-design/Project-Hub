@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Integration } from '../../types';
+import { Integration, Page } from '../../types';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { Checkbox } from '../ui/Checkbox';
 
@@ -10,13 +10,14 @@ interface ImportPagesFromIntegrationModalProps {
     integrations: Integration[];
     onSave: (pages: { name: string, facebookId: string }[]) => Promise<{ success: boolean; errors: { facebookId: string, message: string }[] }>;
     t: any;
+    existingPages: Page[];
 }
 
 type ExternalProject = { id: string; name: string };
 type ExternalProfile = { id: string; name: string };
 type ExternalPage = { pageId: string; name: string };
 
-export const ImportPagesFromIntegrationModal: React.FC<ImportPagesFromIntegrationModalProps> = ({ isOpen, onClose, integrations, onSave, t }) => {
+export const ImportPagesFromIntegrationModal: React.FC<ImportPagesFromIntegrationModalProps> = ({ isOpen, onClose, integrations, onSave, t, existingPages }) => {
     const [selectedIntegrationId, setSelectedIntegrationId] = useState('');
     const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -158,8 +159,13 @@ export const ImportPagesFromIntegrationModal: React.FC<ImportPagesFromIntegratio
             // Deduplicate pages by pageId
             const uniquePages = Array.from(new Map(allPages.map(item => [item.pageId, item])).values());
             setFoundPages(uniquePages);
-            // Auto-select all found pages
-            setSelectedPageIds(uniquePages.map(p => p.pageId));
+            
+            // Auto-select all non-existing pages
+            const newPageIds = uniquePages
+                .filter(p => !existingPages.some(ep => ep.facebookId === p.pageId))
+                .map(p => p.pageId);
+            
+            setSelectedPageIds(newPageIds);
 
         } catch (err) {
             console.error(err);
@@ -201,11 +207,16 @@ export const ImportPagesFromIntegrationModal: React.FC<ImportPagesFromIntegratio
 
     const toggleAllPages = (checked: boolean) => {
         if (checked) {
-            setSelectedPageIds(foundPages.map(p => p.pageId));
+            const idsToSelect = foundPages
+                .filter(p => !existingPages.some(ep => ep.facebookId === p.pageId))
+                .map(p => p.pageId);
+            setSelectedPageIds(idsToSelect);
         } else {
             setSelectedPageIds([]);
         }
     };
+
+    const selectablePagesCount = foundPages.filter(p => !existingPages.some(ep => ep.facebookId === p.pageId)).length;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50" onClick={onClose}>
@@ -309,22 +320,27 @@ export const ImportPagesFromIntegrationModal: React.FC<ImportPagesFromIntegratio
                                 <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1">{t.foundPages} ({foundPages.length})</label>
                                 <div className="flex items-center">
                                     <Checkbox 
-                                        label="Select All" 
-                                        checked={selectedPageIds.length === foundPages.length} 
+                                        label="Select All New" 
+                                        checked={selectedPageIds.length > 0 && selectedPageIds.length === selectablePagesCount} 
                                         onChange={toggleAllPages} 
+                                        disabled={selectablePagesCount === 0}
                                     />
                                 </div>
                             </div>
                             <div className="overflow-y-auto border border-latte-surface0 dark:border-mocha-surface0 rounded-md p-2 space-y-1 max-h-64">
-                                {foundPages.map(page => (
-                                    <div key={page.pageId} className="flex items-center p-2 hover:bg-latte-surface0 dark:hover:bg-mocha-surface0 rounded">
-                                        <Checkbox 
-                                            label={`${page.name} (${page.pageId})`} 
-                                            checked={selectedPageIds.includes(page.pageId)} 
-                                            onChange={(checked) => togglePageSelection(page.pageId, checked)}
-                                        />
-                                    </div>
-                                ))}
+                                {foundPages.map(page => {
+                                    const isExisting = existingPages.some(ep => ep.facebookId === page.pageId);
+                                    return (
+                                        <div key={page.pageId} className="flex items-center p-2 hover:bg-latte-surface0 dark:hover:bg-mocha-surface0 rounded">
+                                            <Checkbox 
+                                                label={`${page.name} (${page.pageId})${isExisting ? ' (Exists)' : ''}`} 
+                                                checked={selectedPageIds.includes(page.pageId)} 
+                                                onChange={(checked) => togglePageSelection(page.pageId, checked)}
+                                                disabled={isExisting}
+                                            />
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}

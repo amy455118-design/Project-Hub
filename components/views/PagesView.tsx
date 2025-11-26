@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import { Page, Integration, Profile } from '../../types';
 import { PlusIcon, EditIcon, TrashIcon, PageIcon, LayersIcon, UploadCloudIcon } from '../icons';
@@ -9,6 +8,7 @@ import { UploadImageModal } from '../modals/UploadImageModal';
 import { ImportPagesFromIntegrationModal } from '../modals/ImportPagesFromIntegrationModal';
 import { ConfirmDeleteModal } from '../ui/ConfirmDeleteModal';
 import { EntityHistory } from './EntityHistory';
+import { Checkbox } from '../ui/Checkbox';
 
 interface PagesViewProps {
     t: any;
@@ -18,11 +18,12 @@ interface PagesViewProps {
     onSavePage: (pageData: Omit<Page, 'id' | 'provider'> & { id?: string }) => Promise<void>;
     onDeletePage: (page: Page) => void;
     onTranscribeImage: (base64: string) => Promise<string[]>;
-    onBulkSavePages: (pages: { name: string, facebookId: string }[]) => Promise<{ success: boolean; errors: { facebookId: string, message: string }[] }>;
+    onBulkSavePages: (pages: { id?: string, name: string, facebookId: string, profileIds?: string[] }[]) => Promise<{ success: boolean; errors: { facebookId: string, message: string }[] }>;
+    onBulkDeletePages: (ids: string[]) => Promise<void> | void;
     hasApiKey: boolean;
 }
 
-export const PagesView: React.FC<PagesViewProps> = ({ t, pages, profiles, integrations, onSavePage, onDeletePage, onTranscribeImage, onBulkSavePages, hasApiKey }) => {
+export const PagesView: React.FC<PagesViewProps> = ({ t, pages, profiles, integrations, onSavePage, onDeletePage, onTranscribeImage, onBulkSavePages, onBulkDeletePages, hasApiKey }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPage, setEditingPage] = useState<Page | null>(null);
     const [pageToDelete, setPageToDelete] = useState<Page | null>(null);
@@ -30,8 +31,12 @@ export const PagesView: React.FC<PagesViewProps> = ({ t, pages, profiles, integr
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
     const [isImportIntegrationModalOpen, setIsImportIntegrationModalOpen] = useState(false);
-    const [transcribedPages, setTranscribedPages] = useState<{name: string}[]>([]);
+    const [pagesToBulkEdit, setPagesToBulkEdit] = useState<Partial<Page>[]>([]);
     const [activeTab, setActiveTab] = useState<'list' | 'history'>('list');
+
+    // Bulk Selection State
+    const [selectedPageIds, setSelectedPageIds] = useState<Set<string>>(new Set());
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
     const handleSave = (pageData: Omit<Page, 'id' | 'provider'> & { id?: string }) => {
         return onSavePage(pageData).then(() => {
@@ -66,8 +71,43 @@ export const PagesView: React.FC<PagesViewProps> = ({ t, pages, profiles, integr
     };
     
     const handleTranscriptionSuccess = (names: string[]) => {
-        setTranscribedPages(names.map(name => ({ name })));
+        setPagesToBulkEdit(names.map(name => ({ name })));
         setIsUploadModalOpen(false);
+        setIsBulkModalOpen(true);
+    };
+
+    // Bulk Selection Handlers
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedPageIds(new Set(pages.map(p => p.id)));
+        } else {
+            setSelectedPageIds(new Set());
+        }
+    };
+
+    const handleSelectPage = (id: string, checked: boolean) => {
+        const newSelected = new Set(selectedPageIds);
+        if (checked) {
+            newSelected.add(id);
+        } else {
+            newSelected.delete(id);
+        }
+        setSelectedPageIds(newSelected);
+    };
+
+    const handleBulkDeleteClick = () => {
+        setShowBulkDeleteConfirm(true);
+    };
+
+    const confirmBulkDelete = async () => {
+        await onBulkDeletePages(Array.from(selectedPageIds));
+        setSelectedPageIds(new Set());
+        setShowBulkDeleteConfirm(false);
+    };
+
+    const handleBulkEditClick = () => {
+        const selectedPages = pages.filter(p => selectedPageIds.has(p.id));
+        setPagesToBulkEdit(selectedPages);
         setIsBulkModalOpen(true);
     };
 
@@ -78,26 +118,49 @@ export const PagesView: React.FC<PagesViewProps> = ({ t, pages, profiles, integr
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-latte-text dark:text-mocha-text">{t.pages}</h1>
                 <div className="flex items-center space-x-2">
-                    <button onClick={handleImportIntegrationClick} className="flex items-center space-x-2 bg-latte-teal text-white dark:bg-mocha-teal dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">
-                        <UploadCloudIcon className="w-5 h-5" />
-                        <span>{t.importFromIntegration}</span>
-                    </button>
+                    {selectedPageIds.size === 0 && (
+                        <>
+                            <button onClick={handleImportIntegrationClick} className="flex items-center space-x-2 bg-latte-teal text-white dark:bg-mocha-teal dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">
+                                <UploadCloudIcon className="w-5 h-5" />
+                                <span>{t.importFromIntegration}</span>
+                            </button>
 
-                    <div className="relative group">
-                        <button 
-                            onClick={handleBulkAddClick} 
-                            disabled={!hasApiKey}
-                            className="flex items-center space-x-2 bg-latte-sky text-white dark:bg-mocha-sky dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <LayersIcon className="w-5 h-5" />
-                            <span>{t.addPagesBulk}</span>
-                        </button>
-                         {!hasApiKey && (
-                            <div className="absolute bottom-full mb-2 right-0 w-64 p-2 bg-latte-surface2 dark:bg-mocha-surface2 rounded shadow-lg text-xs z-10 text-latte-text dark:text-mocha-text border border-latte-overlay0 dark:border-mocha-overlay0 hidden group-hover:block">
-                                {t.aiDisabledWarning} <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-latte-mauve dark:text-mocha-mauve underline font-bold ml-1">{t.getApiKey}</a>
+                            <div className="relative group">
+                                <button 
+                                    onClick={handleBulkAddClick} 
+                                    disabled={!hasApiKey}
+                                    className="flex items-center space-x-2 bg-latte-sky text-white dark:bg-mocha-sky dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <LayersIcon className="w-5 h-5" />
+                                    <span>{t.addPagesBulk}</span>
+                                </button>
+                                {!hasApiKey && (
+                                    <div className="absolute bottom-full mb-2 right-0 w-64 p-2 bg-latte-surface2 dark:bg-mocha-surface2 rounded shadow-lg text-xs z-10 text-latte-text dark:text-mocha-text border border-latte-overlay0 dark:border-mocha-overlay0 hidden group-hover:block">
+                                        {t.aiDisabledWarning} <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-latte-mauve dark:text-mocha-mauve underline font-bold ml-1">{t.getApiKey}</a>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
+                        </>
+                    )}
+
+                    {selectedPageIds.size > 0 && (
+                        <>
+                            <button 
+                                onClick={handleBulkEditClick} 
+                                className="flex items-center space-x-2 bg-latte-blue text-white dark:bg-mocha-blue dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                            >
+                                <EditIcon className="w-5 h-5" />
+                                <span>{t.editSelected} ({selectedPageIds.size})</span>
+                            </button>
+                            <button 
+                                onClick={handleBulkDeleteClick} 
+                                className="flex items-center space-x-2 bg-latte-red text-white dark:bg-mocha-red dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                            >
+                                <TrashIcon className="w-5 h-5" />
+                                <span>{t.deleteSelected} ({selectedPageIds.size})</span>
+                            </button>
+                        </>
+                    )}
 
                     <button onClick={handleAddClick} className="flex items-center space-x-2 bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">
                         <PlusIcon className="w-5 h-5" />
@@ -134,6 +197,13 @@ export const PagesView: React.FC<PagesViewProps> = ({ t, pages, profiles, integr
                         <table className="w-full text-left">
                             <thead className="border-b-2 border-latte-surface1 dark:border-mocha-surface1">
                                 <tr>
+                                    <th className="p-4 w-10">
+                                        <Checkbox 
+                                            label="" 
+                                            checked={selectedPageIds.size === pages.length && pages.length > 0} 
+                                            onChange={handleSelectAll} 
+                                        />
+                                    </th>
                                     <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.pageName}</th>
                                     <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.facebookId}</th>
                                     <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1 text-right">{t.actions}</th>
@@ -142,6 +212,13 @@ export const PagesView: React.FC<PagesViewProps> = ({ t, pages, profiles, integr
                             <tbody>
                                 {pages.map((page) => (
                                     <tr key={page.id} className="border-b border-latte-surface0 dark:border-mocha-surface0 last:border-b-0 hover:bg-latte-surface0 dark:hover:bg-mocha-surface0">
+                                        <td className="p-4">
+                                            <Checkbox 
+                                                label="" 
+                                                checked={selectedPageIds.has(page.id)} 
+                                                onChange={(checked) => handleSelectPage(page.id, checked)} 
+                                            />
+                                        </td>
                                         <td className="p-4 font-medium">{page.name}</td>
                                         <td className="p-4">{page.facebookId}</td>
                                         <td className="p-4 text-right">
@@ -182,7 +259,8 @@ export const PagesView: React.FC<PagesViewProps> = ({ t, pages, profiles, integr
                 onClose={() => setIsBulkModalOpen(false)}
                 onSave={onBulkSavePages}
                 t={t}
-                initialPages={transcribedPages}
+                initialPages={pagesToBulkEdit}
+                profileOptions={profileOptions}
             />
 
             <ImportPagesFromIntegrationModal
@@ -191,6 +269,7 @@ export const PagesView: React.FC<PagesViewProps> = ({ t, pages, profiles, integr
                 integrations={integrations}
                 onSave={onBulkSavePages}
                 t={t}
+                existingPages={pages}
             />
 
             <ConfirmDeleteModal
@@ -199,6 +278,15 @@ export const PagesView: React.FC<PagesViewProps> = ({ t, pages, profiles, integr
                 onConfirm={handleDeleteConfirm}
                 title={t.confirmDelete}
                 message={<>{t.areYouSureDeletePage} <strong className="text-latte-text dark:text-mocha-text">{pageToDelete?.name}</strong>?</>}
+                t={t}
+            />
+
+            <ConfirmDeleteModal
+                isOpen={showBulkDeleteConfirm}
+                onClose={() => setShowBulkDeleteConfirm(false)}
+                onConfirm={confirmBulkDelete}
+                title={t.confirmBulkDelete || "Confirm Bulk Deletion"}
+                message={`${t.areYouSureBulkDeletePages || "Are you sure you want to delete the selected pages?"} (${selectedPageIds.size})`}
                 t={t}
             />
         </div>

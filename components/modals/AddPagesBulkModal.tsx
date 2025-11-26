@@ -1,11 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
 import { Page } from '../../types';
 import { CloseIcon, TrashIcon } from '../icons';
+import { SearchableSelect } from '../ui/SearchableSelect';
 
 export type BulkPageEntry = {
     localId: string;
+    id?: string; // Real ID if editing
     name: string;
     facebookId: string;
+    profileIds: string[];
     error?: string;
 };
 
@@ -14,10 +18,11 @@ interface AddPagesBulkModalProps {
     onClose: () => void;
     onSave: (pages: Omit<BulkPageEntry, 'localId' | 'error'>[]) => Promise<{ success: boolean; errors: { facebookId: string, message: string }[] }>;
     t: any;
-    initialPages: { name: string }[];
+    initialPages: Partial<Page>[];
+    profileOptions?: { value: string; label: string }[];
 }
 
-export const AddPagesBulkModal: React.FC<AddPagesBulkModalProps> = ({ isOpen, onClose, onSave, t, initialPages }) => {
+export const AddPagesBulkModal: React.FC<AddPagesBulkModalProps> = ({ isOpen, onClose, onSave, t, initialPages, profileOptions = [] }) => {
     const [pages, setPages] = useState<BulkPageEntry[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [summaryError, setSummaryError] = useState('');
@@ -26,8 +31,10 @@ export const AddPagesBulkModal: React.FC<AddPagesBulkModalProps> = ({ isOpen, on
         if (isOpen) {
             setPages(initialPages.map(p => ({
                 localId: crypto.randomUUID(),
-                name: p.name,
-                facebookId: '',
+                id: p.id,
+                name: p.name || '',
+                facebookId: p.facebookId || '',
+                profileIds: p.profileIds || [],
             })));
             setIsSaving(false);
             setSummaryError('');
@@ -36,7 +43,7 @@ export const AddPagesBulkModal: React.FC<AddPagesBulkModalProps> = ({ isOpen, on
 
     if (!isOpen) return null;
 
-    const handlePageChange = (localId: string, field: 'name' | 'facebookId', value: string) => {
+    const handlePageChange = (localId: string, field: keyof BulkPageEntry, value: any) => {
         setPages(currentPages =>
             currentPages.map(p => p.localId === localId ? { ...p, [field]: value, error: undefined } : p)
         );
@@ -71,42 +78,58 @@ export const AddPagesBulkModal: React.FC<AddPagesBulkModalProps> = ({ isOpen, on
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50" onClick={onClose}>
-            <div className="bg-latte-mantle dark:bg-mocha-mantle rounded-xl shadow-2xl p-8 w-full max-w-3xl flex flex-col" onClick={e => e.stopPropagation()}>
-                <h2 className="text-2xl font-bold mb-4 text-latte-text dark:text-mocha-text">{t.addPagesBulk || 'Add Pages in Bulk'}</h2>
-                <p className="text-sm text-latte-subtext1 dark:text-mocha-subtext1 mb-6">{t.addPagesBulkDescription || 'Edit the transcribed names and add the Facebook ID for each page.'}</p>
+            <div className="bg-latte-mantle dark:bg-mocha-mantle rounded-xl shadow-2xl p-8 w-full max-w-5xl flex flex-col h-[80vh]" onClick={e => e.stopPropagation()}>
+                <h2 className="text-2xl font-bold mb-4 text-latte-text dark:text-mocha-text">{t.addPagesBulk || 'Add/Edit Pages in Bulk'}</h2>
+                <p className="text-sm text-latte-subtext1 dark:text-mocha-subtext1 mb-6">{t.addPagesBulkDescription || 'Edit the names, Facebook IDs, and link profiles.'}</p>
                 
                 {summaryError && <p className="text-sm text-center text-latte-red dark:text-mocha-red mb-4 p-2 bg-latte-red/10 rounded-md">{summaryError}</p>}
                 
-                <div className="flex-grow overflow-y-auto max-h-[60vh] space-y-3 pr-4 -mr-4">
-                    {pages.map((page, index) => (
-                        <div key={page.localId} className={`p-3 rounded-lg bg-latte-base dark:bg-mocha-base border ${page.error ? 'border-latte-red dark:border-mocha-red' : 'border-latte-surface1 dark:border-mocha-surface1'}`}>
-                            <div className="flex items-start space-x-4">
-                                <div className="flex-grow grid grid-cols-2 gap-4">
+                <div className="flex-grow overflow-y-auto space-y-3 pr-2">
+                    {pages.map((page) => (
+                        <div key={page.localId} className={`p-4 rounded-lg bg-latte-base dark:bg-mocha-base border ${page.error ? 'border-latte-red dark:border-mocha-red' : 'border-latte-surface1 dark:border-mocha-surface1'} relative`}>
+                             <button onClick={() => handleRemovePage(page.localId)} className="absolute top-2 right-2 p-1.5 rounded-lg text-latte-red dark:text-mocha-red hover:bg-latte-red/10 dark:hover:bg-mocha-red/10">
+                                <TrashIcon className="w-4 h-4" />
+                            </button>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pr-8">
+                                <div>
+                                    <label className="block text-xs font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.pageName}</label>
                                     <input
                                         type="text"
                                         placeholder={t.pageName}
                                         value={page.name}
                                         onChange={e => handlePageChange(page.localId, 'name', e.target.value)}
-                                        className="w-full px-3 py-2 rounded-lg bg-latte-mantle dark:bg-mocha-mantle border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none"
+                                        className="w-full px-3 py-2 rounded-lg bg-latte-mantle dark:bg-mocha-mantle border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none text-sm"
                                     />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.facebookId}</label>
                                     <input
                                         type="text"
                                         placeholder={t.facebookId}
                                         value={page.facebookId}
                                         onChange={e => handlePageChange(page.localId, 'facebookId', e.target.value)}
-                                        className="w-full px-3 py-2 rounded-lg bg-latte-mantle dark:bg-mocha-mantle border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none"
+                                        className="w-full px-3 py-2 rounded-lg bg-latte-mantle dark:bg-mocha-mantle border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none text-sm"
                                     />
                                 </div>
-                                <button onClick={() => handleRemovePage(page.localId)} className="p-2 mt-1.5 rounded-lg text-latte-red dark:text-mocha-red hover:bg-latte-red/10 dark:hover:bg-mocha-red/10">
-                                    <TrashIcon className="w-5 h-5" />
-                                </button>
+                                <div>
+                                    <label className="block text-xs font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.profiles}</label>
+                                    <SearchableSelect 
+                                        options={profileOptions} 
+                                        selected={page.profileIds} 
+                                        onChange={(val) => handlePageChange(page.localId, 'profileIds', val)} 
+                                        placeholder={t.selectProfiles} 
+                                        searchPlaceholder={t.searchProfiles} 
+                                        multiple 
+                                    />
+                                </div>
                             </div>
                             {page.error && <p className="text-xs text-latte-red dark:text-mocha-red mt-2 pl-1">{page.error}</p>}
                         </div>
                     ))}
                 </div>
 
-                <div className="mt-8 flex justify-end space-x-4">
+                <div className="mt-6 flex justify-end space-x-4 pt-4 border-t border-latte-surface1 dark:border-mocha-surface1">
                     <button onClick={onClose} className="px-4 py-2 rounded-lg bg-latte-surface1 dark:bg-mocha-surface1 font-semibold hover:bg-latte-surface2 dark:hover:bg-mocha-surface2">{t.cancel}</button>
                     <button onClick={handleSaveClick} className="px-6 py-2 rounded-lg bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust font-semibold disabled:opacity-50" disabled={isSaving || !allFieldsFilled || pages.length === 0}>
                         {isSaving ? (t.saving || 'Saving...') : `${t.saveAll || 'Save All'} (${pages.length})`}

@@ -1,8 +1,7 @@
 
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Project, Domain, BM, Partnership, App as AppData, Profile, Page, View, DomainViewMode, ProfileRole, Integration, ProfileStatus, AccountStatus, User } from './types';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 // Supabase Imports
 import { useSupabase } from './hooks/useSupabase';
@@ -238,7 +237,7 @@ const translations = {
         facebookPassword: "Senha do Facebook",
         twoFactorCode: "Código 2FA",
         addProfilesBulk: "Adicionar Perfis em Lote",
-        addProfilesBulkDescription: "Revise os perfis extraídos dos arquivos e edite as informações conforme necessário.",
+        addProfilesBulkDescription: "Revise os perfis extraídos dos arquivos ou selecione perfis existentes para editar. Utilize o painel de ações em massa para aplicar alterações a todos os itens listados.",
         parsingProfiles: "Lendo arquivos...",
         exportToAdsPower: "Exportar para AdsPower",
         selected: "Selecionados",
@@ -278,6 +277,10 @@ const translations = {
         noProjectsFound: "Nenhum projeto encontrado.",
         noProfilesFound: "Nenhum perfil encontrado.",
         importSuccess: "Páginas importadas com sucesso!",
+        deleteSelected: "Excluir Selecionados",
+        confirmBulkDelete: "Confirmar Exclusão em Massa",
+        areYouSureBulkDeletePages: "Tem certeza que deseja excluir as páginas selecionadas?",
+        editSelected: "Editar Selecionados",
 
         // Integrations/Config
         integrations: "Integrações",
@@ -352,19 +355,19 @@ const translations = {
         addSubdomain: "Add Subdomain",
         subdomainName: "Name (e.g., www)",
         gamAccount: "GAM Account",
-        gamCountry: "GAM Account Country",
+        gamCountry: "GAM Country",
         partnership: "Partnership",
-        planningSheetUrl: "Sheet URL",
-        publisherAdx: "ADX Name",
-        preloader: "Pre-loader",
+        planningSheetUrl: "Planning Sheet URL",
+        publisherAdx: "Publisher ADX",
+        preloader: "Preloader",
         offerwall: "Offerwall",
         pinReceived: "PIN Received",
         yes: "Yes",
         no: "No",
         categories: "Categories",
-        addCategory: "Add a category...",
+        addCategory: "Add category...",
         delete: "Delete",
-        confirmDelete: "Confirm Deletion",
+        confirmDelete: "Confirm Delete",
         areYouSureDelete: "Are you sure you want to delete this domain?",
         updateLogo: "Update Logo",
         selectFile: "Select file",
@@ -378,17 +381,17 @@ const translations = {
         areYouSureDeleteBm: "Are you sure you want to delete this BM?",
         activeDomains: "Active Domains",
         inactiveItems: "Inactive Items",
-        inactiveDomains: "Inactive Parent Domains",
+        inactiveDomains: "Inactive Main Domains",
         inactiveSubdomains: "Inactive Subdomains",
         withPin: "With PIN",
         withoutPin: "Without PIN",
         viewGrouped: "Grouped View",
-        viewByLanguage: "View by Language",
+        viewByLanguage: "Language View",
         date: "Date",
         entity: "Entity",
         action: "Action",
         details: "Details",
-        noHistory: "No activity history found.",
+        noHistory: "No activity history.",
         entityDomain: "Domain",
         entitySubdomain: "Subdomain",
         entityBM: "BM",
@@ -404,14 +407,14 @@ const translations = {
         paymentMethod: "Payment Method",
         paymentMethodOwner: "Payment Owner",
         noAdAccounts: "No ad accounts found.",
-        configuration: "Settings",
+        configuration: "Configuration",
         logout: "Logout",
         username: "Username",
         password: "Password",
         login: "Login",
         loginFailed: "Invalid credentials.",
-        welcomeLogin: "Welcome to the Project Hub",
-        loginDescription: "Please log in to continue.",
+        welcomeLogin: "Welcome to Project Hub",
+        loginDescription: "Please login to continue.",
         appName: "App Name",
         appId: "App ID",
         addApp: "Add App",
@@ -442,7 +445,7 @@ const translations = {
         appCredentials: "App Credentials",
         step1_label: "Creation",
         step2_label: "API Calls",
-        step3_label: "Advanced Permission Access",
+        step3_label: "Advanced Permissions Access",
         step4_label: "Approved",
         selectPartner: "Select a partner",
         searchPartners: "Search partners...",
@@ -454,7 +457,7 @@ const translations = {
         searchBms: "Search BMs...",
         selectPages: "Select pages",
         searchPages: "Search pages...",
-        selectAdAccount: "Select an Ad Account",
+        selectAdAccount: "Select an ad account",
         searchAdAccounts: "Search ad accounts...",
         selectChatbot: "Select a chatbot",
         searchChatbots: "Search chatbots...",
@@ -468,7 +471,7 @@ const translations = {
         projectStatus: "Project Status",
         selectProjectStatus: "Select a status",
         searchStatus: "Search status...",
-        hasRunningCampaigns: "Has running campaigns",
+        hasRunningCampaigns: "Has active campaigns",
         analyst: "Analyst",
         selectAnalyst: "Select an analyst",
         searchAnalyst: "Search analyst...",
@@ -477,16 +480,16 @@ const translations = {
         statusActive: "Active",
         statusDeactivated: "Deactivated",
         statusPaused: "Paused",
-        statusBroad: "Broad",
+        statusBroad: "Broadcast",
         filters: "Filters",
         clearFilters: "Clear Filters",
-        minProfiles: "Min. Profiles",
-        minPages: "Min. Pages",
+        minProfiles: "Min Profiles",
+        minPages: "Min Pages",
         apiKey: "API Key",
         apiKeyPlaceholder: "Enter your Google AI Studio API Key...",
         getApiKey: "Get API Key",
-        aiDisabledWarning: "AI features disabled. Please configure your API Key in Settings.",
-        
+        aiDisabledWarning: "AI features disabled. Configure your API key in settings.",
+
         // Profiles
         addProfile: "Add Profile",
         editProfile: "Edit Profile",
@@ -498,13 +501,13 @@ const translations = {
         profileStatus: "Profile Status",
         profileRole: "Role",
         securityKey: "Security Key",
-        email: "E-mail",
-        accountStatus: "Facebook Account Status",
+        email: "Email",
+        accountStatus: "Account Status",
         driveLink: "Drive Link",
         noProfiles: "No profiles found.",
         areYouSureDeleteProfile: "Are you sure you want to delete this profile?",
         entityProfile: "Profile",
-        statusWarmUp: "Warm up",
+        statusWarmUp: "Warm Up",
         statusStock: "Stock",
         statusInUse: "In Use",
         statusInvalidated: "Invalidated",
@@ -514,8 +517,8 @@ const translations = {
         roleBackup: "Backup",
         accountStatusOK: "OK",
         accountStatusIssues: "Profile has issues",
-        accountStatusRisk: "Profile at risk",
-        addEmail: "Add e-mail...",
+        accountStatusRisk: "Profile is at risk",
+        addEmail: "Add email...",
         selectProfileStatus: "Select status",
         selectRole: "Select role",
         selectSecurityKey: "Select keys",
@@ -524,13 +527,13 @@ const translations = {
         emailPassword: "Email Password",
         facebookPassword: "Facebook Password",
         twoFactorCode: "2FA Code",
-        addProfilesBulk: "Add Profiles in Bulk",
-        addProfilesBulkDescription: "Review the profiles extracted from the files and edit the information as needed.",
+        addProfilesBulk: "Add Profiles Bulk",
+        addProfilesBulkDescription: "Review profiles extracted from files or select existing profiles to edit. Use the bulk action panel to apply changes to all listed items.",
         parsingProfiles: "Reading files...",
         exportToAdsPower: "Export to AdsPower",
         selected: "Selected",
         selectAll: "Select All",
-        foundProfiles: "Found Profiles",
+        foundProfiles: "Profiles Found",
 
         // Pages
         addPage: "Add Page",
@@ -540,14 +543,14 @@ const translations = {
         areYouSureDeletePage: "Are you sure you want to delete this page?",
         entityPage: "Page",
         pageIdExistsError: "A page with this Facebook ID already exists.",
-        addPagesBulk: "Add Pages in Bulk",
-        addPagesBulkDescription: "Edit the transcribed names and add the Facebook ID for each page.",
+        addPagesBulk: "Add Pages Bulk",
+        addPagesBulkDescription: "Edit transcribed names and add Facebook ID for each page.",
         bulkSaveError: "Some items could not be saved. Please review the errors below.",
         saveAll: "Save All",
         saving: "Saving...",
         transcribing: "Transcribing image...",
         uploadImage: "Upload Image",
-        uploadOrPaste: "Upload an image or paste from clipboard (Ctrl+V)",
+        uploadOrPaste: "Upload image or paste from clipboard (Ctrl+V)",
         extractPages: "Extract Pages",
         selectImage: "Select Image",
         changeImage: "Change Image",
@@ -558,15 +561,19 @@ const translations = {
         selectProject: "Select Project",
         fetchProfiles: "Fetch Profiles",
         fetchPages: "Fetch Pages",
-        foundPages: "Found Pages",
+        foundPages: "Pages Found",
         importSelected: "Import Selected",
         connecting: "Connecting...",
         fetching: "Fetching...",
         noProjectsFound: "No projects found.",
         noProfilesFound: "No profiles found.",
         importSuccess: "Pages imported successfully!",
+        deleteSelected: "Delete Selected",
+        confirmBulkDelete: "Confirm Bulk Delete",
+        areYouSureBulkDeletePages: "Are you sure you want to delete the selected pages?",
+        editSelected: "Edit Selected",
 
-        // Integrations
+        // Integrations/Config
         integrations: "Integrations",
         addIntegration: "Add Integration",
         editIntegration: "Edit Integration",
@@ -583,22 +590,22 @@ const translations = {
         roleSupport: "Support",
         roleStructure: "Structure",
         roleAnalyst: "Analyst",
-        roleTraffic: "Analyst", // Legacy support, renamed to Analyst in UI
+        roleTraffic: "Analyst",
         roleCreatives: "Creatives",
         roleBroadcast: "Broadcast",
         roleDevelopment: "Development",
         roleManagement: "Management",
         roleOwner: "Owner",
-        
+
         // User Role Descriptions
         descContent: "Creates content for pages/domains.",
-        descSupport: "Supports content, servers, domain creation.",
-        descStructure: "Manages profiles, pages, linking for new projects.",
-        descAnalyst: "Manages ads, project analysis, decision making.",
-        descTraffic: "Manages ads, project analysis, decision making.", // Legacy
+        descSupport: "Content support, servers, domain creation.",
+        descStructure: "Manages profiles, pages, and new project structure.",
+        descAnalyst: "Manages ads, analyzes projects and decision making.",
+        descTraffic: "Manages ads, analyzes projects and decision making.",
         descCreatives: "Creates creatives for traffic campaigns.",
         descBroadcast: "Analyzes and configures message broadcasts.",
-        descDevelopment: "Builds and maintains applications/dashboards.",
+        descDevelopment: "Builds and maintains apps/dashboards.",
         descManagement: "Responsible for other teams.",
         descOwner: "Company owner.",
     },
@@ -614,58 +621,58 @@ const translations = {
         history: "Historial",
         list: "Lista",
         search: "Buscar todo...",
-        addProject: "Añadir Proyecto",
+        addProject: "Agregar Proyecto",
         editProject: "Editar Proyecto",
         projectName: "Nombre del Proyecto",
         country: "País",
         countries: "Países",
         language: "Idioma",
         noProjects: "No se encontraron proyectos.",
-        title: "MT Connect Digital - Centro de Proyectos",
-        welcome: "Bienvenido al Centro de Proyectos",
+        title: "MT Connect Digital - Hub de Proyectos",
+        welcome: "Bienvenido al Hub de Proyectos",
         description: "Seleccione una categoría de la barra lateral para comenzar.",
         save: "Guardar",
         cancel: "Cancelar",
-        selectCountries: "Seleccione países",
-        selectLanguage: "Seleccione el idioma",
+        selectCountries: "Seleccionar países",
+        selectLanguage: "Seleccionar idioma",
         actions: "Acciones",
         searchCountries: "Buscar países...",
         searchLanguages: "Buscar idiomas...",
-        addDomain: "Añadir Dominio",
+        addDomain: "Agregar Dominio",
         editDomain: "Editar Dominio",
-        domainName: "Nombre de Dominio",
+        domainName: "Nombre del Dominio",
         subdomains: "Subdominios",
         noDomains: "No se encontraron dominios.",
-        addSubdomain: "Añadir Subdominio",
+        addSubdomain: "Agregar Subdominio",
         subdomainName: "Nombre (ej: www)",
         gamAccount: "Cuenta GAM",
-        gamCountry: "País de la Cuenta GAM",
-        partnership: "Asociación",
-        planningSheetUrl: "URL de la Hoja",
-        publisherAdx: "Nombre ADX",
-        preloader: "Pre-loader",
+        gamCountry: "País GAM",
+        partnership: "Alianza",
+        planningSheetUrl: "URL Hoja de Planificación",
+        publisherAdx: "Editor ADX",
+        preloader: "Precargador",
         offerwall: "Offerwall",
         pinReceived: "PIN Recibido",
         yes: "Sí",
         no: "No",
         categories: "Categorías",
-        addCategory: "Añadir una categoría...",
+        addCategory: "Agregar categoría...",
         delete: "Eliminar",
         confirmDelete: "Confirmar Eliminación",
-        areYouSureDelete: "¿Estás seguro de que quieres eliminar este dominio?",
+        areYouSureDelete: "¿Estás seguro de que deseas eliminar este dominio?",
         updateLogo: "Actualizar Logo",
         selectFile: "Seleccionar archivo",
-        addBm: "Añadir BM",
+        addBm: "Agregar BM",
         editBm: "Editar BM",
         bmName: "Nombre del BM",
         bmId: "ID del BM",
         noBms: "No se encontraron BMs.",
         accessVerification: "Verificación de Acceso",
-        itProviderVerified: "Verificado como Proveedor de TI",
-        areYouSureDeleteBm: "¿Estás seguro de que quieres eliminar este BM?",
+        itProviderVerified: "Proveedor TI Verificado",
+        areYouSureDeleteBm: "¿Estás seguro de que deseas eliminar este BM?",
         activeDomains: "Dominios Activos",
-        inactiveItems: "Elementos Inactivos",
-        inactiveDomains: "Dominios Principais Inactivos",
+        inactiveItems: "Ítems Inactivos",
+        inactiveDomains: "Dominios Principales Inactivos",
         inactiveSubdomains: "Subdominios Inactivos",
         withPin: "Con PIN",
         withoutPin: "Sin PIN",
@@ -675,61 +682,61 @@ const translations = {
         entity: "Entidad",
         action: "Acción",
         details: "Detalles",
-        noHistory: "No se encontró historial de actividad.",
+        noHistory: "No hay historial de actividad.",
         entityDomain: "Dominio",
-        entitySubdomain: "Subdomínio",
+        entitySubdomain: "Subdominio",
         entityBM: "BM",
         actionCreate: "Crear",
         actionUpdate: "Actualizar",
         actionDelete: "Eliminar",
         actionActivate: "Activar",
         actionDeactivate: "Desactivar",
-        parentDomain: "Dominio Principal",
-        addAdAccount: "Añadir Cuenta Publicitaria",
-        adAccountName: "Nombre de la Cuenta",
-        accountId: "ID de la Cuenta",
+        parentDomain: "Dominio Padre",
+        addAdAccount: "Agregar Cuenta Publicitaria",
+        adAccountName: "Nombre de Cuenta",
+        accountId: "ID de Cuenta",
         paymentMethod: "Método de Pago",
-        paymentMethodOwner: "Dueño del Pago",
+        paymentMethodOwner: "Propietario del Pago",
         noAdAccounts: "No se encontraron cuentas publicitarias.",
         configuration: "Configuración",
         logout: "Cerrar Sesión",
         username: "Usuario",
         password: "Contraseña",
-        login: "Iniciar Sesión",
+        login: "Ingresar",
         loginFailed: "Credenciales inválidas.",
-        welcomeLogin: "Bienvenido al Centro de Proyectos",
-        loginDescription: "Por favor, inicie sesión para continuar.",
-        appName: "Nombre de la App",
-        appId: "ID de la App",
-        addApp: "Añadir App",
-        noAdAccountsInBm: "No se encontraron cuentas publicitarias para este BM.",
-        noAppsInBm: "No se encontraron aplicaciones para este BM.",
-        partnerships: "Asociaciones",
-        addPartnership: "Añadir Asociación",
-        editPartnership: "Editar Asociación",
-        partnershipName: "Nombre de la Asociación",
-        acronym: "Acrónimo",
+        welcomeLogin: "Bienvenido al Hub de Proyectos",
+        loginDescription: "Inicie sesión para continuar.",
+        appName: "Nombre App",
+        appId: "ID App",
+        addApp: "Agregar App",
+        noAdAccountsInBm: "No se encontraron cuentas publicitarias en este BM.",
+        noAppsInBm: "No se encontraron apps en este BM.",
+        partnerships: "Alianzas",
+        addPartnership: "Agregar Alianza",
+        editPartnership: "Editar Alianza",
+        partnershipName: "Nombre de Alianza",
+        acronym: "Siglas",
         discord: "Discord",
         whatsapp: "WhatsApp",
         notes: "Notas",
-        noPartnerships: "No se encontraron asociaciones.",
-        areYouSureDeletePartnership: "¿Estás seguro de que quieres eliminar esta asociación?",
-        entityPartnership: "Asociación",
-        appDomain: "Dominio de la App",
+        noPartnerships: "No se encontraron alianzas.",
+        areYouSureDeletePartnership: "¿Estás seguro de que deseas eliminar esta alianza?",
+        entityPartnership: "Alianza",
+        appDomain: "Dominio App",
         permissions: "Permisos",
         approvalStep: "Paso de Aprobación",
         step: "Paso",
-        appLogin: "Login de la App",
-        appUrl: "URL de la App",
-        selectPartnership: "Seleccionar asociación",
-        searchPartnerships: "Buscar asociaciones...",
+        appLogin: "Login App",
+        appUrl: "URL App",
+        selectPartnership: "Seleccionar alianza",
+        searchPartnerships: "Buscar alianzas...",
         noChatbots: "No se encontraron chatbots/apps.",
         bmParent: "BM Padre",
         editApp: "Editar App",
-        appCredentials: "Credenciales de la App",
+        appCredentials: "Credenciales App",
         step1_label: "Creación",
-        step2_label: "Llamadas a la API",
-        step3_label: "Acceso a Permisos Avanzados",
+        step2_label: "Llamadas API",
+        step3_label: "Acceso Permisos Avanzados",
         step4_label: "Aprobado",
         selectPartner: "Seleccionar socio",
         searchPartners: "Buscar socios...",
@@ -741,23 +748,23 @@ const translations = {
         searchBms: "Buscar BMs...",
         selectPages: "Seleccionar páginas",
         searchPages: "Buscar páginas...",
-        selectAdAccount: "Seleccionar cuenta publicitaria",
-        searchAdAccounts: "Buscar cuentas publicitarias...",
+        selectAdAccount: "Seleccionar cuenta pub.",
+        searchAdAccounts: "Buscar cuentas pub...",
         selectChatbot: "Seleccionar chatbot",
         searchChatbots: "Buscar chatbots...",
         selectProjects: "Seleccionar proyectos",
         searchProjects: "Buscar proyectos...",
         category: "Categoría",
-        selectCategory: "Seleccione una categoría",
+        selectCategory: "Seleccionar categoría",
         searchCategories: "Buscar categorías...",
-        selectPartnerships: "Seleccione asociaciones",
-        selectBm: "Seleccione un BM",
+        selectPartnerships: "Seleccionar alianzas",
+        selectBm: "Seleccionar BM",
         projectStatus: "Estado del Proyecto",
-        selectProjectStatus: "Seleccione un estado",
+        selectProjectStatus: "Seleccionar estado",
         searchStatus: "Buscar estado...",
         hasRunningCampaigns: "Tiene campañas activas",
         analyst: "Analista",
-        selectAnalyst: "Seleccione un analista",
+        selectAnalyst: "Seleccionar analista",
         searchAnalyst: "Buscar analista...",
         statusInProgress: "En Progreso",
         statusPending: "Pendiente",
@@ -767,29 +774,29 @@ const translations = {
         statusBroad: "Broadcast",
         filters: "Filtros",
         clearFilters: "Limpiar Filtros",
-        minProfiles: "Min. Perfiles",
-        minPages: "Min. Páginas",
-        apiKey: "Clave de API",
-        apiKeyPlaceholder: "Ingrese su clave de API de Google AI Studio...",
-        getApiKey: "Obtener Clave de API",
-        aiDisabledWarning: "Funciones de IA deshabilitadas. Configure su clave de API en la configuración.",
-        
+        minProfiles: "Min Perfiles",
+        minPages: "Min Páginas",
+        apiKey: "Clave API",
+        apiKeyPlaceholder: "Ingrese su Clave API de Google AI Studio...",
+        getApiKey: "Obtener Clave API",
+        aiDisabledWarning: "Funciones de IA desactivadas. Configure su clave API en ajustes.",
+
         // Profiles
-        addProfile: "Añadir Perfil",
+        addProfile: "Agregar Perfil",
         editProfile: "Editar Perfil",
-        profileName: "Nombre del Perfil",
-        facebookId: "ID de Facebook",
-        purchaseDate: "Fecha de Compra",
+        profileName: "Nombre Perfil",
+        facebookId: "ID Facebook",
+        purchaseDate: "Fecha Compra",
         supplier: "Proveedor",
-        price: "Price",
-        profileStatus: "Estado del Perfil",
+        price: "Precio",
+        profileStatus: "Estado Perfil",
         profileRole: "Rol",
-        securityKey: "Clave de Seguridad",
-        email: "Correo Electrónico",
-        accountStatus: "Estado de la Cuenta de Facebook",
-        driveLink: "Enlace de Drive",
+        securityKey: "Clave Seguridad",
+        email: "Correo",
+        accountStatus: "Estado Cuenta",
+        driveLink: "Link Drive",
         noProfiles: "No se encontraron perfiles.",
-        areYouSureDeleteProfile: "¿Estás seguro de que quieres eliminar este perfil?",
+        areYouSureDeleteProfile: "¿Estás seguro de que deseas eliminar este perfil?",
         entityProfile: "Perfil",
         statusWarmUp: "Calentamiento",
         statusStock: "Stock",
@@ -798,71 +805,75 @@ const translations = {
         roleAdvertiser: "Anunciante",
         roleContingency: "Contingencia",
         roleBot: "Bot",
-        roleBackup: "Respaldo",
+        roleBackup: "Backup",
         accountStatusOK: "OK",
         accountStatusIssues: "Perfil con problemas",
         accountStatusRisk: "Perfil en riesgo",
-        addEmail: "Añadir correo electrónico...",
-        selectProfileStatus: "Seleccione el estado",
-        selectRole: "Seleccione el rol",
-        selectSecurityKey: "Seleccione las claves",
-        selectAccountStatus: "Seleccione el estado de la cuenta",
-        recoveryEmail: "Correo de Recuperación",
-        emailPassword: "Contraseña del Correo",
-        facebookPassword: "Contraseña de Facebook",
+        addEmail: "Agregar correo...",
+        selectProfileStatus: "Seleccionar estado",
+        selectRole: "Seleccionar rol",
+        selectSecurityKey: "Seleccionar claves",
+        selectAccountStatus: "Seleccionar estado cuenta",
+        recoveryEmail: "Correo Recuperación",
+        emailPassword: "Clave Correo",
+        facebookPassword: "Clave Facebook",
         twoFactorCode: "Código 2FA",
-        addProfilesBulk: "Añadir Perfiles en Lote",
-        addProfilesBulkDescription: "Revise los perfiles extraídos de los archivos y edite la información según sea necesario.",
+        addProfilesBulk: "Agregar Perfiles en Lote",
+        addProfilesBulkDescription: "Revise los perfiles extraídos o edite existentes. Use el panel masivo para aplicar cambios.",
         parsingProfiles: "Leyendo archivos...",
         exportToAdsPower: "Exportar a AdsPower",
         selected: "Seleccionados",
-        selectAll: "Seleccionar Todos",
+        selectAll: "Seleccionar Todo",
         foundProfiles: "Perfiles Encontrados",
 
         // Pages
-        addPage: "Añadir Página",
+        addPage: "Agregar Página",
         editPage: "Editar Página",
-        pageName: "Nombre de la Página",
+        pageName: "Nombre Página",
         noPages: "No se encontraron páginas.",
-        areYouSureDeletePage: "¿Estás seguro de que quieres eliminar esta página?",
+        areYouSureDeletePage: "¿Estás seguro de que deseas eliminar esta página?",
         entityPage: "Página",
         pageIdExistsError: "Ya existe una página con este ID de Facebook.",
-        addPagesBulk: "Añadir Páginas en Lote",
-        addPagesBulkDescription: "Edita los nombres transcritos y añade el ID de Facebook para cada página.",
-        bulkSaveError: "Algunos elementos no se pudieron guardar. Por favor, revisa los errores a continuación.",
-        saveAll: "Guardar Todas",
+        addPagesBulk: "Agregar Páginas en Lote",
+        addPagesBulkDescription: "Edite nombres transcritos y agregue ID de Facebook.",
+        bulkSaveError: "Algunos ítems no se pudieron guardar. Revise los errores.",
+        saveAll: "Guardar Todo",
         saving: "Guardando...",
         transcribing: "Transcribiendo imagen...",
         uploadImage: "Subir Imagen",
-        uploadOrPaste: "Subir una imagen o pegar desde el portapapeles (Ctrl+V)",
+        uploadOrPaste: "Subir imagen o pegar (Ctrl+V)",
         extractPages: "Extraer Páginas",
         selectImage: "Seleccionar Imagen",
         changeImage: "Cambiar Imagen",
         noImageSelected: "Ninguna imagen seleccionada",
-        importFromIntegration: "Importar desde Integración",
+        importFromIntegration: "Importar de Integración",
         selectIntegration: "Seleccionar Integración",
         connect: "Conectar",
         selectProject: "Seleccionar Proyecto",
-        fetchProfiles: "Obtener Perfiles",
-        fetchPages: "Obtener Páginas",
+        fetchProfiles: "Buscar Perfiles",
+        fetchPages: "Buscar Páginas",
         foundPages: "Páginas Encontradas",
         importSelected: "Importar Seleccionadas",
         connecting: "Conectando...",
-        fetching: "Obteniendo...",
+        fetching: "Buscando...",
         noProjectsFound: "No se encontraron proyectos.",
         noProfilesFound: "No se encontraron perfiles.",
         importSuccess: "¡Páginas importadas con éxito!",
+        deleteSelected: "Eliminar Seleccionados",
+        confirmBulkDelete: "Confirmar Eliminación Masiva",
+        areYouSureBulkDeletePages: "¿Seguro que desea eliminar las páginas seleccionadas?",
+        editSelected: "Editar Seleccionados",
 
-        // Integrations
+        // Integrations/Config
         integrations: "Integraciones",
-        addIntegration: "Añadir Integración",
+        addIntegration: "Agregar Integración",
         editIntegration: "Editar Integración",
-        integrationName: "Nombre de la Integración",
+        integrationName: "Nombre Integración",
         baseUrl: "URL Base",
-        loginUrl: "URL de Inicio de Sesión",
-        userId: "ID de Usuario",
+        loginUrl: "URL Login",
+        userId: "ID Usuario",
         noIntegrations: "No hay integraciones configuradas.",
-        areYouSureDeleteIntegration: "¿Está seguro de que desea eliminar esta integración?",
+        areYouSureDeleteIntegration: "¿Seguro que desea eliminar esta integración?",
         entityIntegration: "Integración",
 
         // User Roles
@@ -870,57 +881,41 @@ const translations = {
         roleSupport: "Soporte",
         roleStructure: "Estructura",
         roleAnalyst: "Analista",
-        roleTraffic: "Analista", // Legacy support, renamed to Analyst in UI
-        roleCreatives: "Creatives",
+        roleTraffic: "Analista",
+        roleCreatives: "Creativos",
         roleBroadcast: "Broadcast",
         roleDevelopment: "Desarrollo",
         roleManagement: "Gestión",
-        roleOwner: "Propietario",
-        
+        roleOwner: "Dueño",
+
         // User Role Descriptions
         descContent: "Crea contenido para páginas/dominios.",
-        descSupport: "Soporte para contenido, servidores, creación de dominios.",
-        descStructure: "Gestiona perfiles, páginas y estructura de nuevos proyectos.",
-        descAnalyst: "Gestiona anuncios, análisis de proyectos y toma de decisiones.",
-        descTraffic: "Gestiona anuncios, análisis de proyectos y toma de decisiones.", // Legacy
+        descSupport: "Soporte de contenido, servidores, dominios.",
+        descStructure: "Gestiona perfiles, páginas y estructura de proyectos.",
+        descAnalyst: "Gestiona anuncios, analiza proyectos y toma decisiones.",
+        descTraffic: "Gestiona anuncios, analiza proyectos y toma decisiones.",
         descCreatives: "Crea creativos para campañas de tráfico.",
-        descBroadcast: "Analisa y configura broadcasts de mensajes.",
-        descDevelopment: "Construye y mantiene aplicaciones/paneles.",
-        descManagement: "Responsable de otros equipos.",
+        descBroadcast: "Analiza y configura broadcasts.",
+        descDevelopment: "Construye y mantiene apps/dashboards.",
+        descManagement: "Responsable por otros equipos.",
         descOwner: "Dueño de la empresa.",
-    }
+    },
 };
 
-export const App: React.FC = () => {
-    const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-        if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            return 'dark';
-        }
-        return 'light';
-    });
+export const App = () => {
     const [user, setUser] = useState<User | null>(null);
     const [view, setView] = useState<View>('dashboard');
-    const [language, setLanguage] = useState<'pt' | 'en' | 'es'>('pt');
+    const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+    const [language, setLanguage] = useState<'pt' | 'en' | 'es'>('en');
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [logoSrc, setLogoSrc] = useState<string | null>(null);
     const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
-    const [domainViewMode, setDomainViewMode] = useState<DomainViewMode>('grouped');
-    const [bmDetailViewType, setBmDetailViewType] = useState<'adAccounts' | 'apps'>('adAccounts');
-    const [loginError, setLoginError] = useState('');
-    const [users, setUsersList] = useState<User[]>([]);
     
-    // API Key State
-    const [userApiKey, setUserApiKey] = useState(localStorage.getItem('projectHubApiKey') || '');
+    // API Key state (kept for compatibility with ConfigurationView prop, but process.env.API_KEY is preferred for GenAI)
+    const [userApiKey, setUserApiKey] = useState('');
 
-    const handleApiKeyChange = (key: string) => {
-        setUserApiKey(key);
-        localStorage.setItem('projectHubApiKey', key);
-    };
+    const [loginError, setLoginError] = useState('');
 
-    // Determine the effective API key (User provided > Environment)
-    const hasApiKey = !!userApiKey || !!process.env.API_KEY;
-
-    // Data Fetching Hooks
     const projects = useSupabase<Project>('projects');
     const domains = useSupabase<Domain>('domains');
     const bms = useSupabase<BM>('bms');
@@ -928,10 +923,10 @@ export const App: React.FC = () => {
     const profiles = useSupabase<Profile>('profiles');
     const pages = useSupabase<Page>('pages');
     const integrations = useSupabase<Integration>('integrations');
-    // Remove useSupabase call for users to avoid error when table doesn't exist
-    // const users = useSupabase<User>('users');
+    const users = useSupabase<User>('users');
 
-    const t = translations[language];
+    const [domainViewMode, setDomainViewMode] = useState<DomainViewMode>('grouped');
+    const [bmDetailViewType, setBmDetailViewType] = useState<'adAccounts' | 'apps'>('adAccounts');
 
     useEffect(() => {
         if (theme === 'dark') {
@@ -941,345 +936,157 @@ export const App: React.FC = () => {
         }
     }, [theme]);
 
-    useEffect(() => {
-        const savedLogo = localStorage.getItem('projectHubLogo');
-        if (savedLogo) setLogoSrc(savedLogo);
-        
-        const savedUser = localStorage.getItem('projectHubUser');
-        if (savedUser) setUser(JSON.parse(savedUser));
-        
-        // Fetch users using api.getAll() which handles the fallback
-        const fetchUsers = async () => {
-            try {
-                const userList = await userApi.getAll();
-                setUsersList(userList);
-            } catch (e) {
-                console.error("Failed to fetch users", e);
-            }
-        };
-        fetchUsers();
-    }, []);
-
     const handleLogin = async (u: string, p: string) => {
-        try {
-            const authenticatedUser = await userApi.login(u, p);
-            if (authenticatedUser) {
-                setUser(authenticatedUser);
-                localStorage.setItem('projectHubUser', JSON.stringify(authenticatedUser));
-                setLoginError('');
-            } else {
-                setLoginError(translations[language].loginFailed);
-            }
-        } catch (e) {
-            setLoginError(translations[language].loginFailed);
-        }
-    };
-
-    const handleRegister = async (newUser: Omit<User, 'id'>) => {
-        const registeredUser = await userApi.register(newUser);
-        if (registeredUser) {
-            // Optionally auto-login or show success
-            setUser(registeredUser);
-            localStorage.setItem('projectHubUser', JSON.stringify(registeredUser));
+        const user = await userApi.login(u, p);
+        if (user) {
+            setUser(user);
             setLoginError('');
-            // Refresh user list
-            const updatedUsers = await userApi.getAll();
-            setUsersList(updatedUsers);
+        } else {
+            setLoginError('Invalid credentials');
         }
     };
 
+    const handleRegister = async (u: Omit<User, 'id'>) => {
+        await userApi.register(u);
+    };
+    
     const handleLogout = () => {
         setUser(null);
-        localStorage.removeItem('projectHubUser');
+        setView('dashboard');
     };
 
-    const toggleTheme = () => {
-        setTheme(prev => prev === 'light' ? 'dark' : 'light');
-    };
-
-    const handleSaveLogo = (newLogoSrc: string) => {
-        setLogoSrc(newLogoSrc);
-        localStorage.setItem('projectHubLogo', newLogoSrc);
-        setIsLogoModalOpen(false);
-    };
-
-    // --- Actions wrappers ---
-    const handleSaveProject = (data: any) => projectApi.save(data);
-    
-    const handleSaveDomain = (data: any) => domainApi.save(data);
-    const handleDeleteDomain = (data: any) => domainApi.delete(data);
-    const handleToggleDomainActive = (id: string, isActive: boolean) => {
-        const domain = domains.find(d => d.id === id);
-        domainApi.toggleActive(id, isActive, domain?.name || 'Unknown');
-    };
-    const handleToggleSubdomainActive = async (domainId: string, subdomainId: string, isActive: boolean) => {
-        const domain = domains.find(d => d.id === domainId);
-        if (domain) {
-            const updatedSubdomains = domain.subdomains.map(sub =>
-                sub.id === subdomainId ? { ...sub, isActive } : sub
-            );
-            
-            const subdomain = domain.subdomains.find(s => s.id === subdomainId);
-            const subName = subdomain 
-                ? (subdomain.name.includes('.') ? subdomain.name : `${subdomain.name}.${domain.name}`)
-                : 'Unknown';
-
-            domainApi.updateSubdomains(domainId, updatedSubdomains, domain.name, {
-                name: subName,
-                action: isActive ? 'Activate' : 'Deactivate'
-            });
+    // GenAI: Parse Profiles
+    const onParseProfiles = async (files: File[]): Promise<Partial<Profile>[]> => {
+        if (!process.env.API_KEY) {
+            console.error("API Key not configured in environment");
+            throw new Error("API Key not configured");
         }
-    };
-
-    const handleSaveBm = (data: any) => bmApi.save(data);
-    const handleDeleteBm = (data: any) => bmApi.delete(data);
-    
-    const handleSaveApp = async (app: AppData) => {
-        const bm = bms.find(b => b.apps.some(a => a.id === app.id));
-        if (bm) {
-            const updatedApps = bm.apps.map(a => a.id === app.id ? app : a);
-            bmApi.updateApps(bm.id, updatedApps, bm.name);
-        }
-    };
-
-    const handleSavePartnership = (data: any) => partnershipApi.save(data);
-    const handleDeletePartnership = (data: any) => partnershipApi.delete(data);
-
-    const handleSaveProfile = async (profileData: Omit<Profile, 'id'> & { id?: string }) => {
-        const oldProfile = profiles.find(p => p.id === profileData.id);
-        await profileApi.save(profileData, oldProfile?.pageIds || []);
-    };
-    const handleDeleteProfile = (data: any) => profileApi.delete(data);
-
-    const handleSavePage = async (pageData: Omit<Page, 'id' | 'provider'> & { id?: string }) => {
-        const oldPage = pages.find(p => p.id === pageData.id);
-        await pageApi.save(pageData, oldPage?.profileIds || []);
-    };
-    const handleDeletePage = (data: any) => pageApi.delete(data);
-
-    const handleSaveIntegration = (data: any) => integrationApi.save(data);
-    const handleDeleteIntegration = (data: any) => integrationApi.delete(data);
-
-    // --- AI Handlers ---
-    const parseProfilesFromFiles = async (files: File[]): Promise<Partial<Profile>[]> => {
-        const apiKey = userApiKey || process.env.API_KEY;
-        if (!apiKey) return [];
-
-        const ai = new GoogleGenAI({ apiKey: apiKey });
         
-        let combinedText = "";
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        
+        const results: Partial<Profile>[] = [];
+
         for (const file of files) {
             const text = await file.text();
-            combinedText += `\n--- FILE START: ${file.name} ---\n${text}\n--- FILE END ---\n`;
-        }
-
-        const prompt = `
-        You are a data extraction assistant. Extract Facebook profile credentials from the provided text.
-        The text may contain multiple profiles in various formats.
-        
-        Return a strictly valid JSON array of objects with the following keys:
-        - name: The profile name (if available, else empty string)
-        - facebookId: The login ID, phone number, or username used for Facebook login.
-        - facebookPassword: The password for Facebook.
-        - twoFactorCode: The 2FA secret key (usually a 32-character string, sometimes separated by spaces). If it's a URL, extract the 'key' parameter.
-        - email: The primary email address.
-        - emailPassword: The password for the email.
-        - recoveryEmail: The recovery email address.
-        - purchaseDate: The date of birth if found (format YYYY-MM-DD), otherwise use today's date.
-
-        Ignore cookies or other binary data representations. Focus on credentials.
-        
-        Text to process:
-        ${combinedText}
-        `;
-
-        try {
-            const result = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                config: { responseMimeType: "application/json" }
-            });
-            const responseText = result.text;
-            if(!responseText) return [];
-            return JSON.parse(responseText);
-        } catch (e) {
-            console.error("AI Parsing failed", e);
-            return [];
-        }
-    }
-
-    const handleBulkSaveProfiles = async (profilesToSave: Partial<Profile>[]): Promise<{ success: boolean; errors: { facebookId: string, message: string }[] }> => {
-        const errors: { facebookId: string, message: string }[] = [];
-        const validProfiles: any[] = [];
-        const seenIds = new Set<string>();
-
-        // 1. Validate within the batch
-        for (const p of profilesToSave) {
-            const fbId = p.facebookId || '';
-            if (!fbId) continue; 
-            if (seenIds.has(fbId)) {
-                errors.push({ facebookId: fbId, message: 'Duplicate in batch' });
-            } else {
-                seenIds.add(fbId);
-                const email = (p as any).email;
-                 validProfiles.push({
-                    id: crypto.randomUUID(),
-                    name: p.name || 'Untitled Profile',
-                    facebookId: fbId,
-                    facebookPassword: p.facebookPassword || '',
-                    twoFactorCode: p.twoFactorCode || '',
-                    emails: email ? [email] : [],
-                    emailPassword: p.emailPassword || '',
-                    recoveryEmail: p.recoveryEmail || '',
-                    purchaseDate: p.purchaseDate ? new Date(p.purchaseDate).toISOString() : new Date().toISOString(),
-                    supplier: p.supplier || 'Bulk Import',
-                    price: p.price || 0,
-                    status: p.status || 'Stock' as ProfileStatus,
-                    role: p.role || ProfileRole.Advertiser,
-                    securityKeys: p.securityKeys || [],
-                    accountStatus: 'OK' as AccountStatus,
-                    driveLink: p.driveLink || '',
-                    pageIds: [],
-                    bmIds: [],
-                    projectIds: []
-                });
-            }
-        }
-
-        // 2. Save
-        try {
-            await profileApi.bulkSave(validProfiles);
-        } catch (err: any) {
-             console.error("Bulk profile save failed", err);
-             return { success: false, errors: [{ facebookId: 'ALL', message: err.message || 'Save failed' }] };
-        }
-
-        return { success: errors.length === 0, errors };
-    };
-
-    const transcribePageNamesFromImage = async (base64Image: string): Promise<string[]> => {
-        const apiKey = userApiKey || process.env.API_KEY;
-        if (!apiKey) return [];
-
-        try {
-            const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
-            const mimeType = base64Image.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)?.[1] || 'image/png';
-
-            const ai = new GoogleGenAI({ apiKey: apiKey });
+            const prompt = `Extract Facebook profiles from this text. Return a JSON array of objects with fields: name, facebookId, facebookPassword, twoFactorCode, email (string), emailPassword, recoveryEmail, supplier, price, status, role, driveLink, securityKeys (array of strings). \n\nText:\n${text}`;
+            
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-flash',
-                contents: {
-                    parts: [
-                        { inlineData: { mimeType: mimeType, data: base64Data } },
-                        { text: "List all the names of Facebook pages visible in this image. Return only a valid JSON array of strings, e.g., [\"Page Name 1\", \"Page Name 2\"]. Do not include markdown formatting." }
-                    ]
-                },
-                 config: { responseMimeType: "application/json" }
+                contents: prompt,
+                config: { 
+                    responseMimeType: 'application/json',
+                    responseSchema: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                name: { type: Type.STRING },
+                                facebookId: { type: Type.STRING },
+                                facebookPassword: { type: Type.STRING },
+                                twoFactorCode: { type: Type.STRING },
+                                email: { type: Type.STRING },
+                                emailPassword: { type: Type.STRING },
+                                recoveryEmail: { type: Type.STRING },
+                                supplier: { type: Type.STRING },
+                                price: { type: Type.NUMBER },
+                                status: { type: Type.STRING },
+                                role: { type: Type.STRING },
+                                driveLink: { type: Type.STRING },
+                                securityKeys: { type: Type.ARRAY, items: { type: Type.STRING } },
+                            }
+                        }
+                    }
+                }
             });
-
-            const text = response.text;
-            if (!text) return [];
-            const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-            return JSON.parse(cleanText);
-
-        } catch (error) {
-            console.error("Error transcribing image:", error);
-            return [];
+            
+            try {
+                const json = JSON.parse(response.text);
+                if (Array.isArray(json)) results.push(...json);
+            } catch (e) { console.error(e); }
         }
+        return results;
     };
 
-    const handleBulkSavePages = async (pagesToSave: { name: string, facebookId: string }[]): Promise<{ success: boolean; errors: { facebookId: string, message: string }[] }> => {
-        const errors: { facebookId: string, message: string }[] = [];
-        const validPages: any[] = [];
-        const seenIds = new Set<string>();
+    // GenAI: Transcribe Image for Pages
+    const onTranscribeImage = async (base64: string): Promise<string[]> => {
+        if (!process.env.API_KEY) {
+             console.error("API Key not configured in environment");
+             throw new Error("API Key not configured");
+        }
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        
+        const prompt = "Extract all text lines from this image that look like page names. Return a JSON array of strings.";
+        
+        const base64Data = base64.split(',')[1];
+        const mimeType = base64.split(';')[0].split(':')[1];
 
-        for (const p of pagesToSave) {
-            if (seenIds.has(p.facebookId)) {
-                errors.push({ facebookId: p.facebookId, message: t.pageIdExistsError });
-            } else {
-                seenIds.add(p.facebookId);
-                 validPages.push({
-                    id: crypto.randomUUID(),
-                    name: p.name,
-                    facebookId: p.facebookId,
-                    provider: 'Bulk Import',
-                    profileIds: []
-                });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: {
+                parts: [
+                    { inlineData: { mimeType, data: base64Data } },
+                    { text: prompt }
+                ]
+            },
+            config: { 
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING }
+                }
             }
-        }
-
-        try {
-            await pageApi.bulkSave(validPages);
-        } catch (err: any) {
-             console.error("Bulk save failed", err);
-             return { success: false, errors: [{ facebookId: 'ALL', message: err.message }] };
-        }
-
-        return { success: errors.length === 0, errors };
-    };
-
-    // Helper functions
-    const getCountryName = (code: string) => {
-        const country = countryList.find(c => c.en === code || c.pt === code || c.es === code);
-        if (!country) return code;
-        return country[language as keyof typeof country] || code;
-    };
-
-    const getLanguageName = (code: string) => {
-         const lang = languageList.find(l => l.en === code || l.pt === code || l.es === code);
-         if (!lang) return code;
-         return lang[language as keyof typeof lang] || code;
+        });
+        
+         try {
+            const json = JSON.parse(response.text);
+            return Array.isArray(json) ? json : [];
+        } catch (e) { console.error(e); return []; }
     };
 
     if (!user) {
-        return <LoginView onLogin={handleLogin} onRegister={handleRegister} t={t} error={loginError} />;
+        return <LoginView onLogin={handleLogin} onRegister={handleRegister} t={translations[language]} error={loginError} />;
     }
 
-    // Options for Selects
-    const countryOptions = countryList.map(c => ({ value: c.en, label: c[language as keyof typeof c] }));
-    const languageOptions = languageList.map(l => ({ value: l.en, label: l[language as keyof typeof l] }));
-    const partnershipOptions = partnerships.map(p => ({ value: p.id, label: p.name }));
-    const projectOptions = projects.map(p => ({ value: p.id, label: p.name }));
-    const profileOptions = profiles.map(p => ({ value: p.id, label: p.name }));
-    const bmOptions = bms.map(b => ({ value: b.id, label: b.name }));
-    const pageOptions = pages.map(p => ({ value: p.id, label: p.name }));
+    const t = translations[language];
 
     const renderView = () => {
         switch (view) {
-            case 'projects':
-                return <ProjectsView t={t} projects={projects} onSaveProject={handleSaveProject} getCountryName={getCountryName} getLanguageName={getLanguageName} countryOptions={countryOptions} languageOptions={languageOptions} domains={domains} bms={bms} partnerships={partnerships} profiles={profiles} pages={pages} users={users} />;
-            case 'domains':
-                return <DomainsView t={t} domains={domains} partnerships={partnerships} projects={projects} onSaveDomain={handleSaveDomain} onDeleteDomain={handleDeleteDomain} onToggleDomainActive={handleToggleDomainActive} onToggleSubdomainActive={handleToggleSubdomainActive} getCountryName={getCountryName} getLanguageName={getLanguageName} countryOptions={countryOptions} languageOptions={languageOptions} projectOptions={projectOptions} viewMode={domainViewMode} setViewMode={setDomainViewMode} />;
-            case 'bms':
-                return <BMsView t={t} bms={bms} partnerships={partnerships} onSaveBm={handleSaveBm} onDeleteBm={handleDeleteBm} getCountryName={getCountryName} countryOptions={countryOptions} detailViewType={bmDetailViewType} setDetailViewType={setBmDetailViewType} partnershipOptions={partnershipOptions} projectOptions={projectOptions} profileOptions={profileOptions} pageOptions={pageOptions} />;
-            case 'chatbots':
-                return <ChatbotsView t={t} bms={bms} partnerships={partnerships} onSaveApp={handleSaveApp} />;
-            case 'partnerships':
-                return <PartnershipsView t={t} partnerships={partnerships} onSavePartnership={handleSavePartnership} onDeletePartnership={handleDeletePartnership} projectOptions={projectOptions} profileOptions={profileOptions} bmOptions={bmOptions} />;
-            case 'profiles':
-                return <ProfilesView t={t} profiles={profiles} pages={pages} integrations={integrations} onSaveProfile={handleSaveProfile} onDeleteProfile={handleDeleteProfile} onParseProfiles={parseProfilesFromFiles} onBulkSaveProfiles={handleBulkSaveProfiles} hasApiKey={hasApiKey} />;
-            case 'pages':
-                return <PagesView t={t} pages={pages} profiles={profiles} integrations={integrations} onSavePage={handleSavePage} onDeletePage={handleDeletePage} onTranscribeImage={transcribePageNamesFromImage} onBulkSavePages={handleBulkSavePages} hasApiKey={hasApiKey} />;
-            case 'configuration':
-                return <ConfigurationView t={t} integrations={integrations} onSaveIntegration={handleSaveIntegration} onDeleteIntegration={handleDeleteIntegration} user={user} userApiKey={userApiKey} onApiKeyChange={handleApiKeyChange} />;
-            case 'history':
-                return <DashboardView t={t} />;
-            case 'dashboard':
-            default:
-                return <DashboardView t={t} />;
+            case 'dashboard': return <DashboardView t={t} />;
+            case 'projects': return <ProjectsView t={t} projects={projects} onSaveProject={projectApi.save} getCountryName={(c) => c} getLanguageName={(l) => l} countryOptions={countryList.map(c => ({ value: c.en, label: c[language] }))} languageOptions={languageList.map(l => ({ value: l.en, label: l[language] }))} domains={domains} bms={bms} partnerships={partnerships} profiles={profiles} pages={pages} users={users} />;
+            case 'domains': return <DomainsView t={t} domains={domains} partnerships={partnerships} projects={projects} onSaveDomain={domainApi.save} onDeleteDomain={domainApi.delete} onToggleDomainActive={(id, a) => domainApi.toggleActive(id, a, domains.find(d => d.id === id)?.name || '')} onToggleSubdomainActive={(did, sid, a) => { 
+                const domain = domains.find(d => d.id === did);
+                if (domain) {
+                    const newSubdomains = domain.subdomains.map(s => s.id === sid ? { ...s, isActive: a } : s);
+                    const subName = domain.subdomains.find(s => s.id === sid)?.name || 'Unknown';
+                    domainApi.updateSubdomains(did, newSubdomains, domain.name, { name: subName, action: a ? 'Activate' : 'Deactivate' });
+                }
+            }} getCountryName={(c) => c} getLanguageName={(l) => l} countryOptions={countryList.map(c => ({ value: c.en, label: c[language] }))} languageOptions={languageList.map(l => ({ value: l.en, label: l[language] }))} projectOptions={projects.map(p => ({ value: p.id, label: p.name }))} viewMode={domainViewMode} setViewMode={setDomainViewMode} />;
+            case 'profiles': return <ProfilesView t={t} profiles={profiles} pages={pages} integrations={integrations} onSaveProfile={profileApi.save} onDeleteProfile={profileApi.delete} onParseProfiles={onParseProfiles} onBulkSaveProfiles={async (p) => { await profileApi.bulkUpsert(p); return { success: true, errors: [] }; }} hasApiKey={!!process.env.API_KEY} />;
+            case 'pages': return <PagesView t={t} pages={pages} profiles={profiles} integrations={integrations} onSavePage={pageApi.save} onDeletePage={pageApi.delete} onTranscribeImage={onTranscribeImage} onBulkSavePages={async (p) => { await pageApi.bulkUpsert(p); return { success: true, errors: [] }; }} onBulkDeletePages={pageApi.bulkDelete} hasApiKey={!!process.env.API_KEY} />;
+            case 'bms': return <BMsView t={t} bms={bms} partnerships={partnerships} onSaveBm={bmApi.save} onDeleteBm={bmApi.delete} getCountryName={(c) => c} countryOptions={countryList.map(c => ({ value: c.en, label: c[language] }))} detailViewType={bmDetailViewType} setDetailViewType={setBmDetailViewType} partnershipOptions={partnerships.map(p => ({ value: p.id, label: p.name }))} projectOptions={projects.map(p => ({ value: p.id, label: p.name }))} profileOptions={profiles.map(p => ({ value: p.id, label: p.name }))} pageOptions={pages.map(p => ({ value: p.id, label: p.name }))} />;
+            case 'chatbots': return <ChatbotsView t={t} bms={bms} partnerships={partnerships} onSaveApp={(app) => { 
+                const bm = bms.find(b => b.apps.some(a => a.id === app.id)); 
+                if (bm) { 
+                    const newApps = bm.apps.map(a => a.id === app.id ? app : a); 
+                    bmApi.updateApps(bm.id, newApps, bm.name, { appName: app.name, action: 'Update' }); 
+                } 
+            }} />;
+            case 'partnerships': return <PartnershipsView t={t} partnerships={partnerships} onSavePartnership={partnershipApi.save} onDeletePartnership={partnershipApi.delete} projectOptions={projects.map(p => ({ value: p.id, label: p.name }))} profileOptions={profiles.map(p => ({ value: p.id, label: p.name }))} bmOptions={bms.map(b => ({ value: b.id, label: b.name }))} />;
+            case 'configuration': return <ConfigurationView t={t} integrations={integrations} onSaveIntegration={integrationApi.save} onDeleteIntegration={integrationApi.delete} user={user} userApiKey={userApiKey} onApiKeyChange={setUserApiKey} />;
+            default: return null;
         }
     };
 
     return (
-        <div className="flex h-screen bg-latte-base dark:bg-mocha-base text-latte-text dark:text-mocha-text transition-colors duration-300 font-sans">
+        <div className={`flex h-screen bg-latte-base dark:bg-mocha-base ${theme}`}>
             <Sidebar t={t} view={view} setView={setView} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} logoSrc={logoSrc} onLogoClick={() => setIsLogoModalOpen(true)} />
             <div className="flex-1 flex flex-col overflow-hidden">
-                <Header t={t} language={language} onLanguageChange={setLanguage} theme={theme} onThemeToggle={toggleTheme} onLogout={handleLogout} onSettingsClick={() => setView('configuration')} />
+                <Header t={t} language={language} onLanguageChange={setLanguage} theme={theme} onThemeToggle={() => setTheme(theme === 'light' ? 'dark' : 'light')} onLogout={handleLogout} onSettingsClick={() => setView('configuration')} />
                 <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
                     {renderView()}
                 </main>
             </div>
-            <UpdateLogoModal isOpen={isLogoModalOpen} onClose={() => setIsLogoModalOpen(false)} onSave={handleSaveLogo} t={t} />
+            <UpdateLogoModal isOpen={isLogoModalOpen} onClose={() => setIsLogoModalOpen(false)} onSave={(src) => { setLogoSrc(src); setIsLogoModalOpen(false); }} t={t} />
         </div>
     );
 };

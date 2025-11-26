@@ -1,8 +1,4 @@
 
-
-
-
-
 import React, { useState, useRef } from 'react';
 import { Profile, Page, Integration } from '../../types';
 import { PlusIcon, EditIcon, TrashIcon, ProfileIcon, ExternalLinkIcon, UploadCloudIcon, DownloadIcon } from '../icons';
@@ -91,6 +87,9 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, 
     
     const handleBulkSave = async (profilesToSave: Partial<Profile>[]) => {
         const result = await onBulkSaveProfiles(profilesToSave);
+        if (result.success) {
+            setSelectedProfileIds(new Set()); // Clear selection after successful bulk edit
+        }
         return result;
     };
 
@@ -110,6 +109,12 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, 
             newSelected.delete(id);
         }
         setSelectedProfileIds(newSelected);
+    };
+
+    const handleBulkEditClick = () => {
+        const selectedProfiles = profiles.filter(p => selectedProfileIds.has(p.id));
+        setParsedProfiles(selectedProfiles);
+        setIsBulkModalOpen(true);
     };
 
     const handleExport = () => {
@@ -191,13 +196,22 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, 
                     </button>
 
                     {selectedProfileIds.size > 0 && (
-                        <button
-                            onClick={handleExport}
-                            className="flex items-center space-x-2 bg-latte-teal text-white dark:bg-mocha-teal dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
-                        >
-                            <DownloadIcon className="w-5 h-5" />
-                            <span>{t.exportToAdsPower} ({selectedProfileIds.size})</span>
-                        </button>
+                        <>
+                            <button
+                                onClick={handleBulkEditClick}
+                                className="flex items-center space-x-2 bg-latte-blue text-white dark:bg-mocha-blue dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                            >
+                                <EditIcon className="w-5 h-5" />
+                                <span>{t.editSelected} ({selectedProfileIds.size})</span>
+                            </button>
+                            <button
+                                onClick={handleExport}
+                                className="flex items-center space-x-2 bg-latte-surface2 text-latte-text dark:bg-mocha-surface2 dark:text-mocha-text px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                            >
+                                <DownloadIcon className="w-5 h-5" />
+                                <span>{t.exportToAdsPower}</span>
+                            </button>
+                        </>
                     )}
 
                     <div className="relative group">
@@ -335,6 +349,7 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, 
                 onSave={handleBulkSave}
                 t={t}
                 initialProfiles={parsedProfiles}
+                pageOptions={pageOptions}
             />
             
             <ImportProfilesFromIntegrationModal

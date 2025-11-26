@@ -44,7 +44,7 @@ export const EditAppDetailsModal: React.FC<EditAppDetailsModalProps> = ({ isOpen
                 <div className="space-y-4">
                     <h3 className="font-semibold">{t.appCredentials}</h3>
                     <input type="text" placeholder={t.username} value={username} onChange={e => setUsername(e.target.value)} className={inputStyle} />
-                    <input type="password" placeholder={t.password} value={password} onChange={e => setPassword(e.target.value)} className={inputStyle} />
+                    <input type="text" placeholder={t.password} value={password} onChange={e => setPassword(e.target.value)} className={inputStyle} />
                     <h3 className="font-semibold pt-2">{t.appUrl}</h3>
                     <input type="url" placeholder="https://..." value={url} onChange={e => setUrl(e.target.value)} className={inputStyle} />
                     <h3 className="font-semibold pt-2">{t.partnership}</h3>
