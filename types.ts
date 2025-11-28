@@ -3,6 +3,8 @@
 
 
 
+
+
 export type View = 'projects' | 'domains' | 'profiles' | 'pages' | 'bms' | 'chatbots' | 'history' | 'dashboard' | 'configuration' | 'partnerships';
 export type DomainViewMode = 'grouped' | 'language';
 
@@ -168,6 +170,7 @@ export interface HistoryEntry {
     entityName: string;
     action: 'Create' | 'Update' | 'Delete' | 'Activate' | 'Deactivate';
     details?: string;
+    userName?: string;
 }
 
 export interface Integration {

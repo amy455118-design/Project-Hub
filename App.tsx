@@ -27,6 +27,7 @@ import { languageList } from './data/languages';
 
 // Localization
 const translations = {
+    // ... (keep existing translations)
     pt: {
         projects: "Projetos",
         domains: "Domínios",
@@ -947,7 +948,7 @@ export const App = () => {
     };
 
     const handleRegister = async (u: Omit<User, 'id'>) => {
-        await userApi.register(u);
+        await userApi.register(u, user?.name);
     };
     
     const handleLogout = () => {
@@ -1048,30 +1049,31 @@ export const App = () => {
     }
 
     const t = translations[language];
+    const userName = user?.name;
 
     const renderView = () => {
         switch (view) {
             case 'dashboard': return <DashboardView t={t} />;
-            case 'projects': return <ProjectsView t={t} projects={projects} onSaveProject={projectApi.save} getCountryName={(c) => c} getLanguageName={(l) => l} countryOptions={countryList.map(c => ({ value: c.en, label: c[language] }))} languageOptions={languageList.map(l => ({ value: l.en, label: l[language] }))} domains={domains} bms={bms} partnerships={partnerships} profiles={profiles} pages={pages} users={users} />;
-            case 'domains': return <DomainsView t={t} domains={domains} partnerships={partnerships} projects={projects} onSaveDomain={domainApi.save} onDeleteDomain={domainApi.delete} onToggleDomainActive={(id, a) => domainApi.toggleActive(id, a, domains.find(d => d.id === id)?.name || '')} onToggleSubdomainActive={(did, sid, a) => { 
+            case 'projects': return <ProjectsView t={t} projects={projects} onSaveProject={(p) => projectApi.save(p, userName)} getCountryName={(c) => c} getLanguageName={(l) => l} countryOptions={countryList.map(c => ({ value: c.en, label: c[language] }))} languageOptions={languageList.map(l => ({ value: l.en, label: l[language] }))} domains={domains} bms={bms} partnerships={partnerships} profiles={profiles} pages={pages} users={users} />;
+            case 'domains': return <DomainsView t={t} domains={domains} partnerships={partnerships} projects={projects} onSaveDomain={(d) => domainApi.save(d, userName)} onDeleteDomain={(d) => domainApi.delete(d, userName)} onToggleDomainActive={(id, a) => domainApi.toggleActive(id, a, domains.find(d => d.id === id)?.name || '', userName)} onToggleSubdomainActive={(did, sid, a) => { 
                 const domain = domains.find(d => d.id === did);
                 if (domain) {
                     const newSubdomains = domain.subdomains.map(s => s.id === sid ? { ...s, isActive: a } : s);
                     const subName = domain.subdomains.find(s => s.id === sid)?.name || 'Unknown';
-                    domainApi.updateSubdomains(did, newSubdomains, domain.name, { name: subName, action: a ? 'Activate' : 'Deactivate' });
+                    domainApi.updateSubdomains(did, newSubdomains, domain.name, { name: subName, action: a ? 'Activate' : 'Deactivate' }, userName);
                 }
             }} getCountryName={(c) => c} getLanguageName={(l) => l} countryOptions={countryList.map(c => ({ value: c.en, label: c[language] }))} languageOptions={languageList.map(l => ({ value: l.en, label: l[language] }))} projectOptions={projects.map(p => ({ value: p.id, label: p.name }))} viewMode={domainViewMode} setViewMode={setDomainViewMode} />;
-            case 'profiles': return <ProfilesView t={t} profiles={profiles} pages={pages} integrations={integrations} onSaveProfile={profileApi.save} onDeleteProfile={profileApi.delete} onParseProfiles={onParseProfiles} onBulkSaveProfiles={async (p) => { await profileApi.bulkUpsert(p); return { success: true, errors: [] }; }} hasApiKey={!!process.env.API_KEY} />;
-            case 'pages': return <PagesView t={t} pages={pages} profiles={profiles} integrations={integrations} onSavePage={pageApi.save} onDeletePage={pageApi.delete} onTranscribeImage={onTranscribeImage} onBulkSavePages={async (p) => { await pageApi.bulkUpsert(p); return { success: true, errors: [] }; }} onBulkDeletePages={pageApi.bulkDelete} hasApiKey={!!process.env.API_KEY} />;
-            case 'bms': return <BMsView t={t} bms={bms} partnerships={partnerships} onSaveBm={bmApi.save} onDeleteBm={bmApi.delete} getCountryName={(c) => c} countryOptions={countryList.map(c => ({ value: c.en, label: c[language] }))} detailViewType={bmDetailViewType} setDetailViewType={setBmDetailViewType} partnershipOptions={partnerships.map(p => ({ value: p.id, label: p.name }))} projectOptions={projects.map(p => ({ value: p.id, label: p.name }))} profileOptions={profiles.map(p => ({ value: p.id, label: p.name }))} pageOptions={pages.map(p => ({ value: p.id, label: p.name }))} />;
+            case 'profiles': return <ProfilesView t={t} profiles={profiles} pages={pages} integrations={integrations} onSaveProfile={(p) => profileApi.save(p, [], userName)} onDeleteProfile={(p) => profileApi.delete(p, userName)} onParseProfiles={onParseProfiles} onBulkSaveProfiles={async (p) => { await profileApi.bulkUpsert(p, userName); return { success: true, errors: [] }; }} hasApiKey={!!process.env.API_KEY} />;
+            case 'pages': return <PagesView t={t} pages={pages} profiles={profiles} integrations={integrations} onSavePage={(p) => pageApi.save(p, [], userName)} onDeletePage={(p) => pageApi.delete(p, userName)} onTranscribeImage={onTranscribeImage} onBulkSavePages={async (p) => { await pageApi.bulkUpsert(p, userName); return { success: true, errors: [] }; }} onBulkDeletePages={(ids) => pageApi.bulkDelete(ids, userName)} hasApiKey={!!process.env.API_KEY} />;
+            case 'bms': return <BMsView t={t} bms={bms} partnerships={partnerships} onSaveBm={(b) => bmApi.save(b, userName)} onDeleteBm={(b) => bmApi.delete(b, userName)} getCountryName={(c) => c} countryOptions={countryList.map(c => ({ value: c.en, label: c[language] }))} detailViewType={bmDetailViewType} setDetailViewType={setBmDetailViewType} partnershipOptions={partnerships.map(p => ({ value: p.id, label: p.name }))} projectOptions={projects.map(p => ({ value: p.id, label: p.name }))} profileOptions={profiles.map(p => ({ value: p.id, label: p.name }))} pageOptions={pages.map(p => ({ value: p.id, label: p.name }))} />;
             case 'chatbots': return <ChatbotsView t={t} bms={bms} partnerships={partnerships} projects={projects} onSaveApp={(app, bmId) => { 
                 const bm = bms.find(b => b.id === bmId); 
                 if (bm) { 
-                    bmApi.saveApp(bmId, app, bm.apps, bm.name);
+                    bmApi.saveApp(bmId, app, bm.apps, bm.name, userName);
                 } 
             }} />;
-            case 'partnerships': return <PartnershipsView t={t} partnerships={partnerships} onSavePartnership={partnershipApi.save} onDeletePartnership={partnershipApi.delete} projectOptions={projects.map(p => ({ value: p.id, label: p.name }))} profileOptions={profiles.map(p => ({ value: p.id, label: p.name }))} bmOptions={bms.map(b => ({ value: b.id, label: b.name }))} />;
-            case 'configuration': return <ConfigurationView t={t} integrations={integrations} onSaveIntegration={integrationApi.save} onDeleteIntegration={integrationApi.delete} user={user} userApiKey={userApiKey} onApiKeyChange={setUserApiKey} />;
+            case 'partnerships': return <PartnershipsView t={t} partnerships={partnerships} onSavePartnership={(p) => partnershipApi.save(p, userName)} onDeletePartnership={(p) => partnershipApi.delete(p, userName)} projectOptions={projects.map(p => ({ value: p.id, label: p.name }))} profileOptions={profiles.map(p => ({ value: p.id, label: p.name }))} bmOptions={bms.map(b => ({ value: b.id, label: b.name }))} />;
+            case 'configuration': return <ConfigurationView t={t} integrations={integrations} onSaveIntegration={(i) => integrationApi.save(i, userName)} onDeleteIntegration={(i) => integrationApi.delete(i, userName)} user={user} userApiKey={userApiKey} onApiKeyChange={setUserApiKey} />;
             default: return null;
         }
     };

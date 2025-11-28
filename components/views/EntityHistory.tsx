@@ -78,6 +78,7 @@ export const EntityHistory: React.FC<EntityHistoryProps> = ({ t, entityTypes }) 
                     <thead className="border-b-2 border-latte-surface1 dark:border-mocha-surface1">
                         <tr>
                             <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.date}</th>
+                            <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">User</th>
                             <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.entity}</th>
                             <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.action}</th>
                             <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.details}</th>
@@ -88,6 +89,9 @@ export const EntityHistory: React.FC<EntityHistoryProps> = ({ t, entityTypes }) 
                             <tr key={entry.id} className="border-b border-latte-surface0 dark:border-mocha-surface0 last:border-b-0">
                                 <td className="p-4 text-sm text-latte-subtext0 dark:text-mocha-subtext0 whitespace-nowrap">
                                     {new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(entry.timestamp)}
+                                </td>
+                                <td className="p-4 text-sm font-medium text-latte-text dark:text-mocha-text whitespace-nowrap">
+                                    {entry.userName || '-'}
                                 </td>
                                 <td className="p-4 font-medium text-latte-text dark:text-mocha-text">
                                     <span className="font-semibold">{t[`entity${entry.entityType}` as keyof typeof t] || entry.entityType}</span>: {entry.entityName}

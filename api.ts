@@ -45,7 +45,7 @@ export const userApi = {
 
         return data as User;
     },
-    register: async (user: Omit<User, 'id'>): Promise<User | null> => {
+    register: async (user: Omit<User, 'id'>, userName?: string): Promise<User | null> => {
         const id = crypto.randomUUID();
         const newUser = { ...user, id };
 
@@ -60,7 +60,7 @@ export const userApi = {
         const { data, error } = await supabase.from('users').insert([newUser]).select().single();
         
         if (error) throw error;
-        addHistoryEntry({ entityType: 'User', entityName: user.name, action: 'Create', details: `Role: ${user.role}` });
+        addHistoryEntry({ entityType: 'User', entityName: user.name, action: 'Create', details: `Role: ${user.role}`, userName });
         return data as User;
     },
     getAll: async (): Promise<User[]> => {
@@ -68,11 +68,12 @@ export const userApi = {
         if (error) throw error;
         return data as User[];
     },
-    updateRole: async (id: string, role: string) => {
+    updateRole: async (id: string, role: string, userName?: string) => {
         const { error } = await supabase.from('users').update({ role }).eq('id', id);
         if (error) throw error;
+        // Optional: Log role update history if needed, though not strictly requested for user management actions on self.
     },
-    delete: async (id: string) => {
+    delete: async (id: string, userName?: string) => {
         const { error } = await supabase.from('users').delete().eq('id', id);
         if (error) throw error;
     }
@@ -80,7 +81,7 @@ export const userApi = {
 
 // --- Projects ---
 export const projectApi = {
-    save: async (project: Partial<Project> & { id?: string }) => {
+    save: async (project: Partial<Project> & { id?: string }, userName?: string) => {
         const now = new Date().toISOString();
         const projectId = project.id || crypto.randomUUID();
         const dataToSave = {
@@ -106,11 +107,11 @@ export const projectApi = {
         if (project.id) {
             const { error } = await supabase.from('projects').update(dataToSave).eq('id', project.id);
             if (error) throw error;
-            addHistoryEntry({ entityType: 'Project', entityName: project.name || 'Unknown', action: 'Update' });
+            addHistoryEntry({ entityType: 'Project', entityName: project.name || 'Unknown', action: 'Update', userName });
         } else {
             const { error } = await supabase.from('projects').insert({ ...dataToSave, createdAt: now });
             if (error) throw error;
-            addHistoryEntry({ entityType: 'Project', entityName: project.name || 'Unknown', action: 'Create' });
+            addHistoryEntry({ entityType: 'Project', entityName: project.name || 'Unknown', action: 'Create', userName });
         }
 
         // Sync Chatbot (App) <-> Project relationship
@@ -163,7 +164,7 @@ const updateAppProjectList = async (appId: string, projectId: string, add: boole
 
 // --- Domains ---
 export const domainApi = {
-    save: async (domain: Partial<Domain> & { id?: string }) => {
+    save: async (domain: Partial<Domain> & { id?: string }, userName?: string) => {
         const dataToSave = {
             ...domain,
             countries: domain.countries || [],
@@ -175,36 +176,36 @@ export const domainApi = {
         if (domain.id) {
             const { error } = await supabase.from('domains').update(dataToSave).eq('id', domain.id);
             if (error) throw error;
-            addHistoryEntry({ entityType: 'Domain', entityName: domain.name || 'Unknown', action: 'Update' });
+            addHistoryEntry({ entityType: 'Domain', entityName: domain.name || 'Unknown', action: 'Update', userName });
         } else {
             const id = crypto.randomUUID();
             const { error } = await supabase.from('domains').insert({ ...dataToSave, id, isActive: true });
             if (error) throw error;
-            addHistoryEntry({ entityType: 'Domain', entityName: domain.name || 'Unknown', action: 'Create' });
+            addHistoryEntry({ entityType: 'Domain', entityName: domain.name || 'Unknown', action: 'Create', userName });
         }
     },
-    delete: async (domain: Domain) => {
+    delete: async (domain: Domain, userName?: string) => {
         const { error } = await supabase.from('domains').delete().eq('id', domain.id);
         if (error) throw error;
-        addHistoryEntry({ entityType: 'Domain', entityName: domain.name, action: 'Delete' });
+        addHistoryEntry({ entityType: 'Domain', entityName: domain.name, action: 'Delete', userName });
     },
-    toggleActive: async (id: string, isActive: boolean, name: string) => {
+    toggleActive: async (id: string, isActive: boolean, name: string, userName?: string) => {
         const { error } = await supabase.from('domains').update({ isActive }).eq('id', id);
         if (error) throw error;
-        addHistoryEntry({ entityType: 'Domain', entityName: name, action: isActive ? 'Activate' : 'Deactivate' });
+        addHistoryEntry({ entityType: 'Domain', entityName: name, action: isActive ? 'Activate' : 'Deactivate', userName });
     },
-    updateSubdomains: async (id: string, subdomains: any[], parentName: string, logEntry?: { name: string, action: HistoryEntry['action'] }) => {
+    updateSubdomains: async (id: string, subdomains: any[], parentName: string, logEntry?: { name: string, action: HistoryEntry['action'] }, userName?: string) => {
         const { error } = await supabase.from('domains').update({ subdomains }).eq('id', id);
         if (error) throw error;
         if (logEntry) {
-            addHistoryEntry({ entityType: 'Subdomain', entityName: logEntry.name, action: logEntry.action, details: `Parent: ${parentName}` });
+            addHistoryEntry({ entityType: 'Subdomain', entityName: logEntry.name, action: logEntry.action, details: `Parent: ${parentName}`, userName });
         }
     }
 };
 
 // --- BMs ---
 export const bmApi = {
-    save: async (bm: Partial<BM> & { id?: string }) => {
+    save: async (bm: Partial<BM> & { id?: string }, userName?: string) => {
         const dataToSave = {
             ...bm,
             adAccounts: bm.adAccounts || [], // JSONB
@@ -217,32 +218,32 @@ export const bmApi = {
         if (bm.id) {
             const { error } = await supabase.from('bms').update(dataToSave).eq('id', bm.id);
             if (error) throw error;
-            addHistoryEntry({ entityType: 'BM', entityName: bm.name || 'Unknown', action: 'Update' });
+            addHistoryEntry({ entityType: 'BM', entityName: bm.name || 'Unknown', action: 'Update', userName });
         } else {
             const id = crypto.randomUUID();
             const { error } = await supabase.from('bms').insert({ ...dataToSave, id });
             if (error) throw error;
-            addHistoryEntry({ entityType: 'BM', entityName: bm.name || 'Unknown', action: 'Create' });
+            addHistoryEntry({ entityType: 'BM', entityName: bm.name || 'Unknown', action: 'Create', userName });
         }
     },
-    delete: async (bm: BM) => {
+    delete: async (bm: BM, userName?: string) => {
         const { error } = await supabase.from('bms').delete().eq('id', bm.id);
         if (error) throw error;
-        addHistoryEntry({ entityType: 'BM', entityName: bm.name, action: 'Delete' });
+        addHistoryEntry({ entityType: 'BM', entityName: bm.name, action: 'Delete', userName });
     },
     // Helper to update apps specifically (for chatbots view) - DEPRECATED internal use, prefer saveApp
-    updateApps: async (bmId: string, apps: any[], bmName: string, logEntry?: { appName: string, action: 'Update' | 'Create' | 'Delete' }) => {
+    updateApps: async (bmId: string, apps: any[], bmName: string, logEntry?: { appName: string, action: 'Update' | 'Create' | 'Delete' }, userName?: string) => {
         const { error } = await supabase.from('bms').update({ apps }).eq('id', bmId);
         if (error) throw error;
         if (logEntry) {
-            addHistoryEntry({ entityType: 'App', entityName: logEntry.appName, action: logEntry.action, details: `Parent BM: ${bmName}` });
+            addHistoryEntry({ entityType: 'App', entityName: logEntry.appName, action: logEntry.action, details: `Parent BM: ${bmName}`, userName });
         }
     },
     // New method to save a single app and sync its relationships
-    saveApp: async (bmId: string, app: App, allApps: App[], bmName: string) => {
+    saveApp: async (bmId: string, app: App, allApps: App[], bmName: string, userName?: string) => {
         // 1. Update the specific app in the BM's app list
         const newApps = allApps.map(a => a.id === app.id ? app : a);
-        await bmApi.updateApps(bmId, newApps, bmName, { appName: app.name, action: 'Update' });
+        await bmApi.updateApps(bmId, newApps, bmName, { appName: app.name, action: 'Update' }, userName);
 
         // 2. Sync Projects: Set chatbotId for selected projects
         const projectIds = app.projectIds || [];
@@ -269,7 +270,7 @@ export const bmApi = {
 
 // --- Partnerships ---
 export const partnershipApi = {
-    save: async (p: Partial<Partnership> & { id?: string }) => {
+    save: async (p: Partial<Partnership> & { id?: string }, userName?: string) => {
         const dataToSave = {
             ...p,
             projectIds: p.projectIds || [],
@@ -280,24 +281,24 @@ export const partnershipApi = {
         if (p.id) {
             const { error } = await supabase.from('partnerships').update(dataToSave).eq('id', p.id);
             if (error) throw error;
-            addHistoryEntry({ entityType: 'Partnership', entityName: p.name || 'Unknown', action: 'Update' });
+            addHistoryEntry({ entityType: 'Partnership', entityName: p.name || 'Unknown', action: 'Update', userName });
         } else {
             const id = crypto.randomUUID();
             const { error } = await supabase.from('partnerships').insert({ ...dataToSave, id });
             if (error) throw error;
-            addHistoryEntry({ entityType: 'Partnership', entityName: p.name || 'Unknown', action: 'Create' });
+            addHistoryEntry({ entityType: 'Partnership', entityName: p.name || 'Unknown', action: 'Create', userName });
         }
     },
-    delete: async (p: Partnership) => {
+    delete: async (p: Partnership, userName?: string) => {
         const { error } = await supabase.from('partnerships').delete().eq('id', p.id);
         if (error) throw error;
-        addHistoryEntry({ entityType: 'Partnership', entityName: p.name, action: 'Delete' });
+        addHistoryEntry({ entityType: 'Partnership', entityName: p.name, action: 'Delete', userName });
     }
 };
 
 // --- Profiles ---
 export const profileApi = {
-    save: async (profile: Partial<Profile> & { id?: string }, oldPageIds: string[] = []) => {
+    save: async (profile: Partial<Profile> & { id?: string }, oldPageIds: string[] = [], userName?: string) => {
         const profileId = profile.id || crypto.randomUUID();
         const dataToSave = {
             ...profile,
@@ -313,11 +314,11 @@ export const profileApi = {
         if (profile.id) {
             const { error } = await supabase.from('profiles').update(dataToSave).eq('id', profileId);
             if (error) throw error;
-            addHistoryEntry({ entityType: 'Profile', entityName: profile.name || 'Unknown', action: 'Update' });
+            addHistoryEntry({ entityType: 'Profile', entityName: profile.name || 'Unknown', action: 'Update', userName });
         } else {
             const { error } = await supabase.from('profiles').insert(dataToSave);
             if (error) throw error;
-            addHistoryEntry({ entityType: 'Profile', entityName: profile.name || 'Unknown', action: 'Create' });
+            addHistoryEntry({ entityType: 'Profile', entityName: profile.name || 'Unknown', action: 'Create', userName });
         }
 
         // 2. Sync Pages (Many-to-Many) manually
@@ -346,12 +347,12 @@ export const profileApi = {
             }
         }
     },
-    delete: async (profile: Profile) => {
+    delete: async (profile: Profile, userName?: string) => {
         const { error } = await supabase.from('profiles').delete().eq('id', profile.id);
         if (error) throw error;
-        addHistoryEntry({ entityType: 'Profile', entityName: profile.name, action: 'Delete' });
+        addHistoryEntry({ entityType: 'Profile', entityName: profile.name, action: 'Delete', userName });
     },
-    bulkUpsert: async (profilesData: Partial<Profile>[]) => {
+    bulkUpsert: async (profilesData: Partial<Profile>[], userName?: string) => {
         // 1. Prepare Data
         const profilesToUpsert = profilesData.map(p => ({
             // Explicitly map allowed columns to avoid sending temporary fields like 'email', 'localId', 'error'
@@ -422,14 +423,15 @@ export const profileApi = {
             entityType: 'Profile', 
             entityName: `${profilesToUpsert.length} Profiles`, 
             action: profilesData.some(p => !!p.id) ? 'Update' : 'Create', 
-            details: 'Bulk Operation' 
+            details: 'Bulk Operation',
+            userName 
         });
     }
 };
 
 // --- Pages ---
 export const pageApi = {
-    save: async (page: Partial<Page> & { id?: string }, oldProfileIds: string[] = []) => {
+    save: async (page: Partial<Page> & { id?: string }, oldProfileIds: string[] = [], userName?: string) => {
         const pageId = page.id || crypto.randomUUID();
         const dataToSave = {
             ...page,
@@ -448,11 +450,11 @@ export const pageApi = {
         if (page.id) {
             const { error } = await supabase.from('pages').update(dataToSave).eq('id', pageId);
             if (error) throw error;
-            addHistoryEntry({ entityType: 'Page', entityName: page.name || 'Unknown', action: 'Update' });
+            addHistoryEntry({ entityType: 'Page', entityName: page.name || 'Unknown', action: 'Update', userName });
         } else {
             const { error } = await supabase.from('pages').insert({ ...dataToSave, provider: page.provider || 'Manual' });
             if (error) throw error;
-            addHistoryEntry({ entityType: 'Page', entityName: page.name || 'Unknown', action: 'Create' });
+            addHistoryEntry({ entityType: 'Page', entityName: page.name || 'Unknown', action: 'Create', userName });
         }
 
         // Sync Profiles (Many-to-Many)
@@ -479,17 +481,17 @@ export const pageApi = {
             }
         }
     },
-    delete: async (page: Page) => {
+    delete: async (page: Page, userName?: string) => {
         const { error } = await supabase.from('pages').delete().eq('id', page.id);
         if (error) throw error;
-        addHistoryEntry({ entityType: 'Page', entityName: page.name, action: 'Delete' });
+        addHistoryEntry({ entityType: 'Page', entityName: page.name, action: 'Delete', userName });
     },
-    bulkDelete: async (ids: string[]) => {
+    bulkDelete: async (ids: string[], userName?: string) => {
         const { error } = await supabase.from('pages').delete().in('id', ids);
         if (error) throw error;
-        addHistoryEntry({ entityType: 'Page', entityName: `${ids.length} Pages`, action: 'Delete' });
+        addHistoryEntry({ entityType: 'Page', entityName: `${ids.length} Pages`, action: 'Delete', userName });
     },
-    bulkUpsert: async (pagesData: { id?: string; name: string; facebookId: string; profileIds?: string[] }[]) => {
+    bulkUpsert: async (pagesData: { id?: string; name: string; facebookId: string; profileIds?: string[] }[], userName?: string) => {
         // 1. Prepare Pages Data
         const pagesToUpsert = pagesData.map(p => ({
             id: p.id || crypto.randomUUID(),
@@ -540,28 +542,29 @@ export const pageApi = {
             entityType: 'Page', 
             entityName: `${pagesToUpsert.length} Pages`, 
             action: pagesData.some(p => !!p.id) ? 'Update' : 'Create', 
-            details: 'Bulk Operation'
+            details: 'Bulk Operation',
+            userName
         });
     }
 };
 
 // --- Integrations ---
 export const integrationApi = {
-    save: async (integration: Partial<Integration> & { id?: string }) => {
+    save: async (integration: Partial<Integration> & { id?: string }, userName?: string) => {
         if (integration.id) {
             const { error } = await supabase.from('integrations').update(integration).eq('id', integration.id);
             if (error) throw error;
-            addHistoryEntry({ entityType: 'Integration', entityName: integration.name || 'Unknown', action: 'Update' });
+            addHistoryEntry({ entityType: 'Integration', entityName: integration.name || 'Unknown', action: 'Update', userName });
         } else {
             const id = crypto.randomUUID();
             const { error } = await supabase.from('integrations').insert({ ...integration, id });
             if (error) throw error;
-            addHistoryEntry({ entityType: 'Integration', entityName: integration.name || 'Unknown', action: 'Create' });
+            addHistoryEntry({ entityType: 'Integration', entityName: integration.name || 'Unknown', action: 'Create', userName });
         }
     },
-    delete: async (integration: Integration) => {
+    delete: async (integration: Integration, userName?: string) => {
         const { error } = await supabase.from('integrations').delete().eq('id', integration.id);
         if (error) throw error;
-        addHistoryEntry({ entityType: 'Integration', entityName: integration.name, action: 'Delete' });
+        addHistoryEntry({ entityType: 'Integration', entityName: integration.name, action: 'Delete', userName });
     }
 };
