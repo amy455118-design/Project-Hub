@@ -2,6 +2,7 @@
 
 
 
+
 export type View = 'projects' | 'domains' | 'profiles' | 'pages' | 'bms' | 'chatbots' | 'history' | 'dashboard' | 'configuration' | 'partnerships';
 export type DomainViewMode = 'grouped' | 'language';
 
@@ -103,6 +104,7 @@ export interface App {
     password?: string;
     partnershipId?: string;
     profileIds?: string[];
+    projectIds?: string[];
 }
 
 export interface AdAccount {

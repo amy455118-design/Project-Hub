@@ -1,6 +1,6 @@
 
 import { supabase } from './supabaseClient';
-import { Project, Domain, BM, Partnership, Profile, Page, Integration, HistoryEntry, User } from './types';
+import { Project, Domain, BM, Partnership, Profile, Page, Integration, HistoryEntry, User, App } from './types';
 
 // --- History Helper ---
 const addHistoryEntry = async (entry: Omit<HistoryEntry, 'id' | 'timestamp'>) => {
@@ -82,29 +82,81 @@ export const userApi = {
 export const projectApi = {
     save: async (project: Partial<Project> & { id?: string }) => {
         const now = new Date().toISOString();
+        const projectId = project.id || crypto.randomUUID();
         const dataToSave = {
             ...project,
+            id: projectId,
             updatedAt: now,
-            // Handle arrays that might be undefined
             domainIds: project.domainIds || [],
             subdomainIds: project.subdomainIds || [],
             profileIds: project.profileIds || [],
             pageIds: project.pageIds || [],
             partnershipIds: project.partnershipIds || [],
             countries: project.countries || [],
+            chatbotId: project.chatbotId
         };
 
+        // Get the previous project to check if chatbotId changed (if updating)
+        let previousProject: Project | null = null;
         if (project.id) {
-            // Update
+            const { data } = await supabase.from('projects').select('*').eq('id', project.id).single();
+            previousProject = data;
+        }
+
+        if (project.id) {
             const { error } = await supabase.from('projects').update(dataToSave).eq('id', project.id);
             if (error) throw error;
             addHistoryEntry({ entityType: 'Project', entityName: project.name || 'Unknown', action: 'Update' });
         } else {
-            // Create
-            const id = crypto.randomUUID();
-            const { error } = await supabase.from('projects').insert({ ...dataToSave, id, createdAt: now });
+            const { error } = await supabase.from('projects').insert({ ...dataToSave, createdAt: now });
             if (error) throw error;
             addHistoryEntry({ entityType: 'Project', entityName: project.name || 'Unknown', action: 'Create' });
+        }
+
+        // Sync Chatbot (App) <-> Project relationship
+        // 1. If a new chatbotId is set, add this projectId to the App's projectIds
+        // 2. If chatbotId changed, remove this projectId from the old App's projectIds
+        if (project.chatbotId !== (previousProject?.chatbotId || undefined)) {
+            // Remove from old app if exists
+            if (previousProject?.chatbotId) {
+                await updateAppProjectList(previousProject.chatbotId, projectId, false);
+            }
+            // Add to new app if exists
+            if (project.chatbotId) {
+                await updateAppProjectList(project.chatbotId, projectId, true);
+            }
+        }
+    }
+};
+
+// Helper to update an App's project list (JSONB manipulation in BMs table)
+const updateAppProjectList = async (appId: string, projectId: string, add: boolean) => {
+    // 1. Find the BM containing this app
+    // Note: This is inefficient with JSONB in arrays, but standard for this schema structure.
+    const { data: bms } = await supabase.from('bms').select('*');
+    if (!bms) return;
+
+    for (const bm of bms) {
+        const apps = bm.apps as App[];
+        const appIndex = apps.findIndex(a => a.id === appId);
+        
+        if (appIndex !== -1) {
+            const app = apps[appIndex];
+            const currentProjectIds = app.projectIds || [];
+            let newProjectIds = [...currentProjectIds];
+
+            if (add) {
+                if (!newProjectIds.includes(projectId)) newProjectIds.push(projectId);
+            } else {
+                newProjectIds = newProjectIds.filter(id => id !== projectId);
+            }
+
+            if (newProjectIds.length !== currentProjectIds.length) {
+                const newApps = [...apps];
+                newApps[appIndex] = { ...app, projectIds: newProjectIds };
+                await supabase.from('bms').update({ apps: newApps }).eq('id', bm.id);
+            }
+            break; // Found and updated, exit loop
         }
     }
 };
@@ -178,12 +230,39 @@ export const bmApi = {
         if (error) throw error;
         addHistoryEntry({ entityType: 'BM', entityName: bm.name, action: 'Delete' });
     },
-    // Helper to update apps specifically (for chatbots view)
+    // Helper to update apps specifically (for chatbots view) - DEPRECATED internal use, prefer saveApp
     updateApps: async (bmId: string, apps: any[], bmName: string, logEntry?: { appName: string, action: 'Update' | 'Create' | 'Delete' }) => {
         const { error } = await supabase.from('bms').update({ apps }).eq('id', bmId);
         if (error) throw error;
         if (logEntry) {
             addHistoryEntry({ entityType: 'App', entityName: logEntry.appName, action: logEntry.action, details: `Parent BM: ${bmName}` });
+        }
+    },
+    // New method to save a single app and sync its relationships
+    saveApp: async (bmId: string, app: App, allApps: App[], bmName: string) => {
+        // 1. Update the specific app in the BM's app list
+        const newApps = allApps.map(a => a.id === app.id ? app : a);
+        await bmApi.updateApps(bmId, newApps, bmName, { appName: app.name, action: 'Update' });
+
+        // 2. Sync Projects: Set chatbotId for selected projects
+        const projectIds = app.projectIds || [];
+        
+        if (projectIds.length > 0) {
+            // Set this app as chatbotId for all listed projects
+            await supabase.from('projects').update({ chatbotId: app.id }).in('id', projectIds);
+        }
+
+        // 3. Sync Projects: Unset chatbotId for projects that were removed
+        // Find projects that have this chatbotId but are NOT in the new list
+        const { data: linkedProjects } = await supabase.from('projects').select('id').eq('chatbotId', app.id);
+        if (linkedProjects) {
+            const idsToRemove = linkedProjects
+                .map(p => p.id)
+                .filter(id => !projectIds.includes(id));
+            
+            if (idsToRemove.length > 0) {
+                await supabase.from('projects').update({ chatbotId: null }).in('id', idsToRemove);
+            }
         }
     }
 };
@@ -271,11 +350,6 @@ export const profileApi = {
         const { error } = await supabase.from('profiles').delete().eq('id', profile.id);
         if (error) throw error;
         addHistoryEntry({ entityType: 'Profile', entityName: profile.name, action: 'Delete' });
-    },
-    bulkSave: async (profiles: any[]) => {
-        // DEPRECATED in favor of bulkUpsert for editing capabilities, keeping for backward compatibility if needed
-        const { error } = await supabase.from('profiles').insert(profiles);
-        if(error) throw error;
     },
     bulkUpsert: async (profilesData: Partial<Profile>[]) => {
         // 1. Prepare Data
@@ -421,15 +495,11 @@ export const pageApi = {
             id: p.id || crypto.randomUUID(),
             name: p.name,
             facebookId: p.facebookId,
-            provider: p.id ? undefined : 'Bulk Import', // Keep existing provider if editing, or overwrite? Assuming partial upsert logic or full.
-            // Supabase upsert overwrites fields. If we want to preserve provider, we'd need to read it.
-            // For bulk ops, assuming 'Bulk Import' for new ones is fine. For edits, we might overwrite provider.
-            // To avoid complexity, we'll just set it to 'Bulk Import' or keep if passed (not passed here).
+            provider: p.id ? undefined : 'Bulk Import',
             profileIds: p.profileIds || [],
         }));
 
         // 2. Upsert Pages
-        // We use upsert to handle both new and existing records based on ID
         const { error } = await supabase.from('pages').upsert(
             pagesToUpsert.map(p => ({
                 id: p.id,
@@ -441,9 +511,7 @@ export const pageApi = {
         );
         if (error) throw error;
 
-        // 3. Sync Profiles (Heavy operation, but necessary for consistency)
-        // We need to ensure the referenced profiles have these page IDs in their list.
-        // Get all unique profile IDs involved
+        // 3. Sync Profiles
         const allProfileIds = new Set<string>();
         pagesToUpsert.forEach(p => p.profileIds.forEach(pid => allProfileIds.add(pid)));
 
@@ -453,7 +521,6 @@ export const pageApi = {
             if (profiles) {
                 const updates = profiles.map(profile => {
                     const pagesForThisProfile = pagesToUpsert.filter(p => p.profileIds.includes(profile.id)).map(p => p.id);
-                    // Merge existing pageIds with new ones, avoiding duplicates
                     const existingPageIds = profile.pageIds || [];
                     const newPageIdsSet = new Set([...existingPageIds, ...pagesForThisProfile]);
                     return {

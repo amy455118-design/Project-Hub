@@ -1,7 +1,6 @@
 
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Project, ProjectStatus, Analyst, Domain, BM, Partnership, Profile, Page } from '../../types';
+import { Project, ProjectStatus, Analyst, Domain, BM, Partnership, Profile, Page, App } from '../../types';
 import { SearchableSelect } from '../ui/SearchableSelect';
 
 interface AddProjectModalProps {
@@ -39,6 +38,7 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({
     const [analyst, setAnalyst] = useState<Analyst>('');
     const [profileIds, setProfileIds] = useState<string[]>([]);
     const [pageIds, setPageIds] = useState<string[]>([]);
+    const [chatbotId, setChatbotId] = useState<string | undefined>();
 
     const domainAndSubdomainOptions = useMemo(() => {
         const options: { value: string, label: string, type: 'domain' | 'subdomain' }[] = [];
@@ -54,6 +54,16 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({
 
     const partnershipOptions = useMemo(() => partnerships.map(p => ({ value: p.id, label: p.name })), [partnerships]);
     const bmOptions = useMemo(() => bms.map(b => ({ value: b.id, label: b.name })), [bms]);
+
+    const chatbotOptions = useMemo(() => {
+        const options: { value: string, label: string }[] = [];
+        bms.forEach(bm => {
+            bm.apps.forEach(app => {
+                options.push({ value: app.id, label: `${app.name} (${bm.name})` });
+            });
+        });
+        return options;
+    }, [bms]);
 
     const categoryOptions = useMemo(() => {
         if (selectedTargets.length === 0) return [];
@@ -124,7 +134,7 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({
         setName(''); setCountries([]); setLanguage(''); setSelectedTargets([]);
         setCategory(undefined); setPartnershipIds([]); setBmId(undefined);
         setAdAccountId(undefined); setStatus('Pending'); setAnalyst('');
-        setProfileIds([]); setPageIds([]);
+        setProfileIds([]); setPageIds([]); setChatbotId(undefined);
     }, []);
 
     useEffect(() => {
@@ -142,6 +152,7 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({
                 setAnalyst(editingProject.analyst);
                 setProfileIds(editingProject.profileIds || []);
                 setPageIds(editingProject.pageIds || []);
+                setChatbotId(editingProject.chatbotId);
             } else {
                 resetForm();
             }
@@ -176,7 +187,7 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({
                 bmId, adAccountId, status, analyst,
                 profileIds,
                 pageIds,
-                chatbotId: editingProject?.chatbotId
+                chatbotId
             };
             onSave(editingProject ? { ...projectData, id: editingProject.id } : projectData);
         }
@@ -237,6 +248,10 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({
                                 <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.adAccounts}</label>
                                 <SearchableSelect options={adAccountOptions} selected={adAccountId || ''} onChange={setAdAccountId} placeholder={t.selectAdAccount} searchPlaceholder={t.searchAdAccounts} disabled={adAccountOptions.length === 0} />
                             </div>
+                            <div>
+                                <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.chatbots}</label>
+                                <SearchableSelect options={chatbotOptions} selected={chatbotId || ''} onChange={setChatbotId} placeholder={t.selectChatbot} searchPlaceholder={t.searchChatbots} />
+                            </div>
                         </div>
                     </div>
                      {/* Status & Management */}
@@ -245,7 +260,6 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                              <div>
                                 <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.projectStatus}</label>
-                                {/* FIX: Use the new 'selectProjectStatus' translation key. */}
                                 <SearchableSelect options={projectStatusOptions} selected={status} onChange={setStatus} placeholder={t.selectProjectStatus} searchPlaceholder={t.searchStatus} />
                             </div>
                             <div>

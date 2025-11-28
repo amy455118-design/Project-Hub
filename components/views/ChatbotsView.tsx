@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { App, BM, Partnership } from '../../types';
+import { App, BM, Partnership, Project } from '../../types';
 import { MessageSquareIcon, ExternalLinkIcon, EditIcon } from '../icons';
 import { EditAppDetailsModal } from '../modals/EditAppDetailsModal';
 import { EntityHistory } from './EntityHistory';
@@ -9,12 +9,14 @@ interface ChatbotsViewProps {
     t: any;
     bms: BM[];
     partnerships: Partnership[];
-    onSaveApp: (app: App) => void;
+    projects: Project[];
+    onSaveApp: (app: App, bmId: string) => void;
 }
 
-export const ChatbotsView: React.FC<ChatbotsViewProps> = ({ t, bms, partnerships, onSaveApp }) => {
+export const ChatbotsView: React.FC<ChatbotsViewProps> = ({ t, bms, partnerships, projects, onSaveApp }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingApp, setEditingApp] = useState<App | null>(null);
+    const [editingBmId, setEditingBmId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'list' | 'history'>('list');
 
     const allApps = useMemo(() =>
@@ -26,13 +28,16 @@ export const ChatbotsView: React.FC<ChatbotsViewProps> = ({ t, bms, partnerships
         return partnerships.find(p => p.id === id)?.name || 'N/A';
     };
 
-    const handleEditClick = (app: App) => {
+    const handleEditClick = (app: App, bmId: string) => {
         setEditingApp(app);
+        setEditingBmId(bmId);
         setIsModalOpen(true);
     };
 
     const handleSave = (app: App) => {
-        onSaveApp(app);
+        if (editingBmId) {
+            onSaveApp(app, editingBmId);
+        }
         setIsModalOpen(false);
     };
 
@@ -85,7 +90,7 @@ export const ChatbotsView: React.FC<ChatbotsViewProps> = ({ t, bms, partnerships
                                         <td className="p-4 text-right">
                                             <div className="flex items-center justify-end space-x-1">
                                                 {app.url && <a href={app.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-md hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-latte-green dark:text-mocha-green"><ExternalLinkIcon className="w-5 h-5" /></a>}
-                                                <button onClick={() => handleEditClick(app)} className="p-2 rounded-md hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-latte-blue dark:text-mocha-blue"><EditIcon className="w-5 h-5" /></button>
+                                                <button onClick={() => handleEditClick(app, app.bmId)} className="p-2 rounded-md hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-latte-blue dark:text-mocha-blue"><EditIcon className="w-5 h-5" /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -97,7 +102,7 @@ export const ChatbotsView: React.FC<ChatbotsViewProps> = ({ t, bms, partnerships
             ) : (
                 <EntityHistory t={t} entityTypes={['App']} />
             )}
-            {editingApp && <EditAppDetailsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} t={t} app={editingApp} partnerships={partnerships} />}
+            {editingApp && <EditAppDetailsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} t={t} app={editingApp} partnerships={partnerships} projects={projects} />}
         </div>
     );
 }

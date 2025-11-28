@@ -1064,11 +1064,10 @@ export const App = () => {
             case 'profiles': return <ProfilesView t={t} profiles={profiles} pages={pages} integrations={integrations} onSaveProfile={profileApi.save} onDeleteProfile={profileApi.delete} onParseProfiles={onParseProfiles} onBulkSaveProfiles={async (p) => { await profileApi.bulkUpsert(p); return { success: true, errors: [] }; }} hasApiKey={!!process.env.API_KEY} />;
             case 'pages': return <PagesView t={t} pages={pages} profiles={profiles} integrations={integrations} onSavePage={pageApi.save} onDeletePage={pageApi.delete} onTranscribeImage={onTranscribeImage} onBulkSavePages={async (p) => { await pageApi.bulkUpsert(p); return { success: true, errors: [] }; }} onBulkDeletePages={pageApi.bulkDelete} hasApiKey={!!process.env.API_KEY} />;
             case 'bms': return <BMsView t={t} bms={bms} partnerships={partnerships} onSaveBm={bmApi.save} onDeleteBm={bmApi.delete} getCountryName={(c) => c} countryOptions={countryList.map(c => ({ value: c.en, label: c[language] }))} detailViewType={bmDetailViewType} setDetailViewType={setBmDetailViewType} partnershipOptions={partnerships.map(p => ({ value: p.id, label: p.name }))} projectOptions={projects.map(p => ({ value: p.id, label: p.name }))} profileOptions={profiles.map(p => ({ value: p.id, label: p.name }))} pageOptions={pages.map(p => ({ value: p.id, label: p.name }))} />;
-            case 'chatbots': return <ChatbotsView t={t} bms={bms} partnerships={partnerships} onSaveApp={(app) => { 
-                const bm = bms.find(b => b.apps.some(a => a.id === app.id)); 
+            case 'chatbots': return <ChatbotsView t={t} bms={bms} partnerships={partnerships} projects={projects} onSaveApp={(app, bmId) => { 
+                const bm = bms.find(b => b.id === bmId); 
                 if (bm) { 
-                    const newApps = bm.apps.map(a => a.id === app.id ? app : a); 
-                    bmApi.updateApps(bm.id, newApps, bm.name, { appName: app.name, action: 'Update' }); 
+                    bmApi.saveApp(bmId, app, bm.apps, bm.name);
                 } 
             }} />;
             case 'partnerships': return <PartnershipsView t={t} partnerships={partnerships} onSavePartnership={partnershipApi.save} onDeletePartnership={partnershipApi.delete} projectOptions={projects.map(p => ({ value: p.id, label: p.name }))} profileOptions={profiles.map(p => ({ value: p.id, label: p.name }))} bmOptions={bms.map(b => ({ value: b.id, label: b.name }))} />;
