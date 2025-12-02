@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { View } from '../../types';
-import { ProjectIcon, DomainIcon, ProfileIcon, PageIcon, BMIcon, MessageSquareIcon, UsersIcon, ChevronsRightIcon, ChevronsLeftIcon, MtLogoIcon } from '../icons';
+import { ProjectIcon, DomainIcon, ProfileIcon, PageIcon, BMIcon, MessageSquareIcon, UsersIcon, ChevronsRightIcon, ChevronsLeftIcon, MtLogoIcon, CodeIcon } from '../icons';
 
 const navItems = [
     { id: 'projects' as View, icon: ProjectIcon, labelKey: 'projects' },
@@ -56,6 +55,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ t, view, setView, isCollapsed,
                         </li>
                     ))}
                 </ul>
+                
+                {/* API Docs Section */}
+                <div className="mt-4 pt-4 border-t border-latte-surface1 dark:border-mocha-surface1">
+                    <button
+                        onClick={() => setView('api')}
+                        className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-lg transition-all duration-200 ${isCollapsed ? 'justify-center' : ''} ${view === 'api'
+                            ? 'bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-base font-semibold'
+                            : 'text-latte-subtext1 dark:text-mocha-subtext1 hover:bg-latte-surface0 dark:hover:bg-mocha-surface0'
+                            }`}
+                    >
+                        <CodeIcon className="w-6 h-6 flex-shrink-0" />
+                        {!isCollapsed && <span>{t.apiAccess || 'API Access'}</span>}
+                    </button>
+                </div>
             </div>
             <button
                 onClick={() => setIsCollapsed(!isCollapsed)}

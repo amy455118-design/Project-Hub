@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { HistoryEntry } from '../../types';
-import { HistoryIcon } from '../icons';
+import { HistoryIcon, ExternalLinkIcon } from '../icons';
+import { HistoryComparisonModal } from '../modals/HistoryComparisonModal';
 
 interface EntityHistoryProps {
     t: any;
@@ -12,6 +13,7 @@ interface EntityHistoryProps {
 export const EntityHistory: React.FC<EntityHistoryProps> = ({ t, entityTypes }) => {
     const [history, setHistory] = useState<HistoryEntry[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedEntry, setSelectedEntry] = useState<HistoryEntry | null>(null);
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -74,39 +76,60 @@ export const EntityHistory: React.FC<EntityHistoryProps> = ({ t, entityTypes }) 
                     <p className="text-lg text-latte-subtext0 dark:text-mocha-subtext0">{t.noHistory}</p>
                 </div>
             ) : (
-                <table className="w-full text-left">
-                    <thead className="border-b-2 border-latte-surface1 dark:border-mocha-surface1">
-                        <tr>
-                            <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.date}</th>
-                            <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">User</th>
-                            <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.entity}</th>
-                            <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.action}</th>
-                            <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.details}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {history.map((entry) => (
-                            <tr key={entry.id} className="border-b border-latte-surface0 dark:border-mocha-surface0 last:border-b-0">
-                                <td className="p-4 text-sm text-latte-subtext0 dark:text-mocha-subtext0 whitespace-nowrap">
-                                    {new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(entry.timestamp)}
-                                </td>
-                                <td className="p-4 text-sm font-medium text-latte-text dark:text-mocha-text whitespace-nowrap">
-                                    {entry.userName || '-'}
-                                </td>
-                                <td className="p-4 font-medium text-latte-text dark:text-mocha-text">
-                                    <span className="font-semibold">{t[`entity${entry.entityType}` as keyof typeof t] || entry.entityType}</span>: {entry.entityName}
-                                </td>
-                                <td className="p-4">
-                                    <span className={`px-2 py-1 text-xs font-bold rounded-full ${getActionColor(entry.action)}`}>
-                                        {t[`action${entry.action}` as keyof typeof t]}
-                                    </span>
-                                </td>
-                                <td className="p-4 text-sm text-latte-subtext0 dark:text-mocha-subtext0">{entry.details || '-'}</td>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead className="border-b-2 border-latte-surface1 dark:border-mocha-surface1">
+                            <tr>
+                                <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.date}</th>
+                                <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">User</th>
+                                <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.entity}</th>
+                                <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.action}</th>
+                                <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.details}</th>
+                                <th className="p-4 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1 text-right">View</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {history.map((entry) => (
+                                <tr key={entry.id} className="border-b border-latte-surface0 dark:border-mocha-surface0 last:border-b-0">
+                                    <td className="p-4 text-sm text-latte-subtext0 dark:text-mocha-subtext0 whitespace-nowrap">
+                                        {new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(entry.timestamp)}
+                                    </td>
+                                    <td className="p-4 text-sm font-medium text-latte-text dark:text-mocha-text whitespace-nowrap">
+                                        {entry.userName || '-'}
+                                    </td>
+                                    <td className="p-4 font-medium text-latte-text dark:text-mocha-text">
+                                        <span className="font-semibold">{t[`entity${entry.entityType}` as keyof typeof t] || entry.entityType}</span>: {entry.entityName}
+                                    </td>
+                                    <td className="p-4">
+                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${getActionColor(entry.action)}`}>
+                                            {t[`action${entry.action}` as keyof typeof t]}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 text-sm text-latte-subtext0 dark:text-mocha-subtext0 truncate max-w-xs">{entry.details || '-'}</td>
+                                    <td className="p-4 text-right">
+                                        {(entry.oldData || entry.newData) && (
+                                            <button 
+                                                onClick={() => setSelectedEntry(entry)}
+                                                className="p-1.5 rounded hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-latte-blue dark:text-mocha-blue"
+                                                title="View Diff"
+                                            >
+                                                <ExternalLinkIcon className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             )}
+            
+            <HistoryComparisonModal 
+                isOpen={!!selectedEntry}
+                onClose={() => setSelectedEntry(null)}
+                historyEntry={selectedEntry}
+                t={t}
+            />
         </div>
     );
 };

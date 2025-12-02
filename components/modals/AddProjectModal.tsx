@@ -65,31 +65,23 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({
         return options;
     }, [bms]);
 
+    // Use ALL projects + domains to build the category list, making it global
     const categoryOptions = useMemo(() => {
-        if (selectedTargets.length === 0) return [];
         const categories = new Set<string>();
-
-        const selectedDomainIds = selectedTargets.filter(targetId => domainAndSubdomainOptions.find(opt => opt.value === targetId)?.type === 'domain');
-        const selectedSubdomainIds = selectedTargets.filter(targetId => domainAndSubdomainOptions.find(opt => opt.value === targetId)?.type === 'subdomain');
-
-        // Categories from parent domains
-        domains.forEach(domain => {
-            if (selectedDomainIds.includes(domain.id)) {
-                domain.categories.forEach(cat => categories.add(cat));
-            }
-        });
         
-        // Categories from subdomains
-        domains.forEach(domain => {
-            domain.subdomains.forEach(subdomain => {
-                if (selectedSubdomainIds.includes(subdomain.id)) {
-                    subdomain.categories.forEach(cat => categories.add(cat));
-                }
-            });
+        // Add existing project categories
+        projects.forEach(p => {
+            if (p.category) categories.add(p.category);
         });
 
-        return Array.from(categories).map(cat => ({ value: cat, label: cat }));
-    }, [selectedTargets, domains, domainAndSubdomainOptions]);
+        // Add domain categories
+        domains.forEach(d => {
+            d.categories.forEach(c => categories.add(c));
+            d.subdomains.forEach(s => s.categories.forEach(c => categories.add(c)));
+        });
+
+        return Array.from(categories).sort().map(cat => ({ value: cat, label: cat }));
+    }, [projects, domains]);
 
     const adAccountOptions = useMemo(() => {
         if (!bmId) return [];
@@ -159,11 +151,9 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({
         }
     }, [isOpen, editingProject, resetForm]);
 
-    // Reset dependent fields when their source changes
-    useEffect(() => { setCategory(undefined); }, [selectedTargets]);
+    // Dependent fields logic
     useEffect(() => { setAdAccountId(undefined); }, [bmId]);
     useEffect(() => { 
-        // Deselect pages that are no longer valid based on the new profile selection
         const validPageIds = new Set(availablePageOptions.map(p => p.value));
         setPageIds(current => current.filter(id => validPageIds.has(id)));
     }, [profileIds, availablePageOptions]);
@@ -226,7 +216,14 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({
                             </div>
                              <div>
                                 <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.category}</label>
-                                <SearchableSelect options={categoryOptions} selected={category || ''} onChange={setCategory} placeholder={t.selectCategory} searchPlaceholder={t.searchCategories} disabled={categoryOptions.length === 0} />
+                                <SearchableSelect 
+                                    options={categoryOptions} 
+                                    selected={category || ''} 
+                                    onChange={setCategory} 
+                                    placeholder={t.selectCategory} 
+                                    searchPlaceholder={t.searchCategories} 
+                                    creatable 
+                                />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.profiles}</label>

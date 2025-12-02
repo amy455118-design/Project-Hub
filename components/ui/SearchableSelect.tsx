@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDownIcon, CloseIcon } from '../icons';
+import { ChevronDownIcon, CloseIcon, PlusIcon } from '../icons';
 
 interface SearchableSelectProps {
     options: { value: string; label: string }[];
@@ -11,9 +11,19 @@ interface SearchableSelectProps {
     searchPlaceholder: string;
     multiple?: boolean;
     disabled?: boolean;
+    creatable?: boolean;
 }
 
-export const SearchableSelect: React.FC<SearchableSelectProps> = ({ options, selected, onChange, placeholder, searchPlaceholder, multiple = false, disabled = false }) => {
+export const SearchableSelect: React.FC<SearchableSelectProps> = ({ 
+    options, 
+    selected, 
+    onChange, 
+    placeholder, 
+    searchPlaceholder, 
+    multiple = false, 
+    disabled = false,
+    creatable = false
+}) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const wrapperRef = useRef<HTMLDivElement>(null);
@@ -84,6 +94,13 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({ options, sel
         }
     };
 
+    const handleCreate = () => {
+        if (searchTerm.trim()) {
+            handleSelect(searchTerm.trim());
+            setSearchTerm('');
+        }
+    };
+
     const displayValue = () => {
         if (multiple && Array.isArray(selected) && selected.length > 0) {
             return (
@@ -122,29 +139,52 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({ options, sel
                     placeholder={searchPlaceholder}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && creatable && searchTerm.trim() && filteredOptions.length === 0) {
+                            e.preventDefault();
+                            handleCreate();
+                        }
+                    }}
                     className="w-full px-3 py-2 rounded-lg bg-latte-base dark:bg-mocha-base border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none"
                 />
             </div>
             <ul className="max-h-60 overflow-y-auto p-1">
-                {filteredOptions.map(option => (
-                    <li
-                        key={option.value}
-                        onClick={() => handleSelect(option.value)}
-                        className={`p-2 rounded-md cursor-pointer text-sm ${(multiple && Array.isArray(selected) && selected.includes(option.value)) || (!multiple && selected === option.value)
-                            ? 'bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust'
-                            : 'hover:bg-latte-surface0 dark:hover:bg-mocha-surface0'
-                            }`}
-                    >
-                        {option.label}
+                {filteredOptions.length > 0 ? (
+                    filteredOptions.map(option => (
+                        <li
+                            key={option.value}
+                            onClick={() => handleSelect(option.value)}
+                            className={`p-2 rounded-md cursor-pointer text-sm ${(multiple && Array.isArray(selected) && selected.includes(option.value)) || (!multiple && selected === option.value)
+                                ? 'bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust'
+                                : 'hover:bg-latte-surface0 dark:hover:bg-mocha-surface0'
+                                }`}
+                        >
+                            {option.label}
+                        </li>
+                    ))
+                ) : (
+                    creatable && searchTerm.trim() && (
+                        <li
+                            onClick={handleCreate}
+                            className="p-2 rounded-md cursor-pointer text-sm text-latte-blue dark:text-mocha-blue hover:bg-latte-surface0 dark:hover:bg-mocha-surface0 flex items-center gap-2"
+                        >
+                            <PlusIcon className="w-4 h-4" />
+                            Create "{searchTerm}"
+                        </li>
+                    )
+                )}
+                
+                {filteredOptions.length === 0 && (!creatable || !searchTerm.trim()) && (
+                    <li className="p-2 text-sm text-latte-subtext0 dark:text-mocha-subtext0 text-center">
+                        No results found
                     </li>
-                ))}
+                )}
             </ul>
         </div>
     );
 
     return (
         <div className="relative" ref={wrapperRef}>
-            {/* FIX: Add disabled prop handling to prevent interaction and style the component. */}
             <div
                 onClick={() => !disabled && setIsOpen(!isOpen)}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-lg bg-latte-base dark:bg-mocha-base border border-latte-surface1 dark:border-mocha-surface1 min-h-[42px] ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}

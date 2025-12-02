@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Project, Domain, BM, Partnership, App as AppData, Profile, Page, View, DomainViewMode, ProfileRole, Integration, ProfileStatus, AccountStatus, User } from './types';
 import { GoogleGenAI, Type } from "@google/genai";
@@ -21,6 +20,7 @@ import { PartnershipsView } from './components/views/PartnershipsView';
 import { ProfilesView } from './components/views/ProfilesView';
 import { PagesView } from './components/views/PagesView';
 import { ConfigurationView } from './components/views/ConfigurationView';
+import { ApiDocsView } from './components/views/ApiDocsView';
 
 import { countryList } from './data/countries';
 import { languageList } from './data/languages';
@@ -199,6 +199,7 @@ const translations = {
         apiKeyPlaceholder: "Insira sua chave da API do Google AI Studio...",
         getApiKey: "Obter Chave da API",
         aiDisabledWarning: "Recursos de IA desativados. Configure sua chave da API nas configurações.",
+        apiAccess: "Acesso API",
 
         // Profiles
         addProfile: "Adicionar Perfil",
@@ -490,6 +491,7 @@ const translations = {
         apiKeyPlaceholder: "Enter your Google AI Studio API Key...",
         getApiKey: "Get API Key",
         aiDisabledWarning: "AI features disabled. Configure your API key in settings.",
+        apiAccess: "API Access",
 
         // Profiles
         addProfile: "Add Profile",
@@ -781,6 +783,7 @@ const translations = {
         apiKeyPlaceholder: "Ingrese su Clave API de Google AI Studio...",
         getApiKey: "Obtener Clave API",
         aiDisabledWarning: "Funciones de IA desactivadas. Configure su clave API en ajustes.",
+        apiAccess: "Acceso API",
 
         // Profiles
         addProfile: "Agregar Perfil",
@@ -1074,6 +1077,7 @@ export const App = () => {
             }} />;
             case 'partnerships': return <PartnershipsView t={t} partnerships={partnerships} onSavePartnership={(p) => partnershipApi.save(p, userName)} onDeletePartnership={(p) => partnershipApi.delete(p, userName)} projectOptions={projects.map(p => ({ value: p.id, label: p.name }))} profileOptions={profiles.map(p => ({ value: p.id, label: p.name }))} bmOptions={bms.map(b => ({ value: b.id, label: b.name }))} />;
             case 'configuration': return <ConfigurationView t={t} integrations={integrations} onSaveIntegration={(i) => integrationApi.save(i, userName)} onDeleteIntegration={(i) => integrationApi.delete(i, userName)} user={user} userApiKey={userApiKey} onApiKeyChange={setUserApiKey} />;
+            case 'api': return <ApiDocsView t={t} />;
             default: return null;
         }
     };

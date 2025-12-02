@@ -1,5 +1,3 @@
-
-
 import React, { useMemo } from 'react';
 
 export const SunIcon = ({ className }: { className?: string }) => (
@@ -275,6 +273,15 @@ export const UsersIcon = ({ className }: { className?: string }) => (
         <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
         <circle cx="8.5" cy="7" r="4"></circle>
         <polyline points="17 11 19 13 23 9"></polyline>
+    </svg>
+  </span>
+);
+
+export const CodeIcon = ({ className }: { className?: string }) => (
+  <span className={`inline-block ${className || ''}`}>
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="16 18 22 12 16 6"></polyline>
+        <polyline points="8 6 2 12 8 18"></polyline>
     </svg>
   </span>
 );

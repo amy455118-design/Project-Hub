@@ -1,11 +1,13 @@
 
-
 import React, { useState, useMemo } from 'react';
-import { Project, ProjectStatus, Analyst, Domain, BM, Partnership, Profile, Page, User } from '../../types';
-import { PlusIcon, ProjectIcon, EditIcon, ChevronDownIcon, FilterIcon } from '../icons';
+import { Project, ProjectStatus, Analyst, Domain, BM, Partnership, Profile, Page, User, HistoryEntry } from '../../types';
+import { PlusIcon, ProjectIcon, EditIcon, ChevronDownIcon, FilterIcon, LayoutGridIcon, ListIcon } from '../icons';
 import { AddProjectModal } from '../modals/AddProjectModal';
 import { EntityHistory } from './EntityHistory';
 import { SearchableSelect } from '../ui/SearchableSelect';
+import { supabase } from '../../supabaseClient';
+import { HistoryComparisonModal } from '../modals/HistoryComparisonModal';
+import { ProjectCard } from '../cards/ProjectCard';
 
 interface ProjectsViewProps {
     t: any;
@@ -38,6 +40,10 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [expandedProjectIds, setExpandedProjectIds] = useState<string[]>([]);
     const [activeTab, setActiveTab] = useState<'list' | 'history'>('list');
+    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+
+    // History Modal State
+    const [selectedHistoryEntry, setSelectedHistoryEntry] = useState<HistoryEntry | null>(null);
 
     // Filter State
     const [showFilters, setShowFilters] = useState(false);
@@ -55,7 +61,53 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
 
     const allApps = useMemo(() => bms.flatMap(bm => bm.apps), [bms]);
 
-    // Computed Options for Filters
+    // --- Lookups for Project Card ---
+    const getProjectTargets = (project: Project) => {
+        const targets: string[] = [];
+        project.domainIds?.forEach(id => {
+            const domain = domains.find(d => d.id === id);
+            if (domain) targets.push(domain.name);
+        });
+        project.subdomainIds?.forEach(id => {
+            for (const domain of domains) {
+                const sub = domain.subdomains.find(s => s.id === id);
+                if (sub) {
+                    const label = sub.name.includes('.') ? sub.name : `${sub.name}.${domain.name}`;
+                    targets.push(label);
+                    break;
+                }
+            }
+        });
+        return targets.join(', ');
+    };
+
+    const getBmName = (bmId?: string) => {
+        if (!bmId) return '-';
+        return bms.find(b => b.id === bmId)?.name || 'Unknown BM';
+    };
+
+    const getAdAccountName = (bmId?: string, adAccountId?: string) => {
+        if (!bmId || !adAccountId) return '-';
+        const bm = bms.find(b => b.id === bmId);
+        return bm?.adAccounts.find(a => a.id === adAccountId)?.name || 'Unknown Ad Account';
+    };
+
+    const getChatbotName = (chatbotId?: string) => {
+        if (!chatbotId) return '-';
+        return allApps.find(a => a.id === chatbotId)?.name || 'Unknown Chatbot';
+    };
+
+    const cardLookups = {
+        getCountryName,
+        getLanguageName,
+        getProjectTargets,
+        getBmName,
+        getAdAccountName,
+        getChatbotName
+    };
+
+    // ---
+
     const domainAndSubdomainOptions = useMemo(() => {
         const options: { value: string, label: string, type: 'domain' | 'subdomain' }[] = [];
         domains.forEach(domain => {
@@ -73,7 +125,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
         projects.forEach(p => {
             if (p.category) cats.add(p.category);
         });
-        return Array.from(cats).map(c => ({ value: c, label: c }));
+        return Array.from(cats).sort().map(c => ({ value: c, label: c }));
     }, [projects]);
 
     const partnershipOptions = useMemo(() => partnerships.map(p => ({ value: p.id, label: p.name })), [partnerships]);
@@ -165,6 +217,23 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
         );
     };
 
+    const handleDateClick = async (project: Project) => {
+        const { data, error } = await supabase
+            .from('history')
+            .select('*')
+            .eq('entityType', 'Project')
+            .eq('entityName', project.name)
+            .order('timestamp', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (data && !error) {
+            setSelectedHistoryEntry({ ...data, timestamp: new Date(data.timestamp) });
+        } else {
+            alert("No detailed history available for this project yet.");
+        }
+    };
+
     const getNextStatus = (current: ProjectStatus): ProjectStatus => {
         switch (current) {
             case 'In Progress': return 'Active';
@@ -194,25 +263,6 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
         }
     };
     
-    const getProjectTargets = (project: Project) => {
-        const targets: string[] = [];
-        project.domainIds?.forEach(id => {
-            const domain = domains.find(d => d.id === id);
-            if (domain) targets.push(domain.name);
-        });
-        project.subdomainIds?.forEach(id => {
-            for (const domain of domains) {
-                const sub = domain.subdomains.find(s => s.id === id);
-                if (sub) {
-                    const label = sub.name.includes('.') ? sub.name : `${sub.name}.${domain.name}`;
-                    targets.push(label);
-                    break;
-                }
-            }
-        });
-        return targets.join(', ');
-    };
-    
     const handleClearFilters = () => {
         setSelectedCountries([]);
         setSelectedLanguage('');
@@ -225,6 +275,33 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
         setSelectedAnalyst('');
         setMinProfiles('');
         setMinPages('');
+    };
+
+    // Custom renderer for HistoryComparisonModal
+    const renderProjectHistory = (data: any, type: 'old' | 'new', changedFields: string[]) => {
+        // Hydrate data with defaults if missing (for safer rendering)
+        const hydratedProject = {
+            ...data,
+            countries: data.countries || [],
+            domainIds: data.domainIds || [],
+            subdomainIds: data.subdomainIds || [],
+            profileIds: data.profileIds || [],
+            pageIds: data.pageIds || [],
+            partnershipIds: data.partnershipIds || [],
+            updatedAt: data.updatedAt || new Date().toISOString(), // Fallback
+        } as Project;
+
+        return (
+            <div className="h-full">
+                <ProjectCard 
+                    project={hydratedProject} 
+                    t={t} 
+                    lookups={cardLookups} 
+                    variant="static" 
+                    changedFields={changedFields}
+                />
+            </div>
+        );
     };
 
     const renderProjectTable = (projectList: Project[]) => (
@@ -313,6 +390,22 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
                         <FilterIcon className="w-5 h-5" />
                         <span>{t.filters}</span>
                     </button>
+                    
+                    <div className="flex items-center bg-latte-surface0 dark:bg-mocha-surface0 rounded-lg p-1">
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            className={`p-2 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust' : 'text-latte-subtext1 dark:text-mocha-subtext1 hover:bg-latte-surface1 dark:hover:bg-mocha-surface1'}`}
+                        >
+                            <LayoutGridIcon className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('table')}
+                            className={`p-2 rounded-md transition-colors ${viewMode === 'table' ? 'bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust' : 'text-latte-subtext1 dark:text-mocha-subtext1 hover:bg-latte-surface1 dark:hover:bg-mocha-surface1'}`}
+                        >
+                            <ListIcon className="w-5 h-5" />
+                        </button>
+                    </div>
+
                     <button
                         onClick={handleAddClick}
                         className="flex items-center space-x-2 bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
@@ -325,6 +418,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
 
             {showFilters && (
                 <div className="bg-latte-surface0 dark:bg-mocha-surface0 p-4 rounded-xl mb-6 shadow-sm">
+                    {/* ... (Filter UI remains unchanged) ... */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                              <label className="block text-xs font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.countries}</label>
@@ -370,8 +464,8 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
                              <label className="block text-xs font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.minPages}</label>
                              <input type="number" min="0" value={minPages} onChange={(e) => setMinPages(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-latte-base dark:bg-mocha-base border border-latte-surface1 dark:border-mocha-surface1 focus:ring-2 focus:ring-latte-mauve dark:focus:ring-mocha-mauve focus:outline-none text-sm" placeholder="0" />
                         </div>
-                        <div className="flex items-end">
-                            <button onClick={handleClearFilters} className="w-full px-4 py-2 rounded-lg border border-latte-surface2 dark:border-mocha-surface2 text-latte-subtext1 dark:text-mocha-subtext1 hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-sm font-medium transition-colors">
+                        <div>
+                            <button onClick={handleClearFilters} className="w-full h-[42px] px-4 py-2 mt-auto rounded-lg border border-latte-surface2 dark:border-mocha-surface2 text-latte-subtext1 dark:text-mocha-subtext1 hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-sm font-medium transition-colors">
                                 {t.clearFilters}
                             </button>
                         </div>
@@ -414,9 +508,25 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
                                             {t[`status${statusOption.value.replace(/\s/g, '')}`] || statusOption.value} ({projectsForStatus.length})
                                         </span>
                                     </h2>
-                                    <div className="bg-latte-crust dark:bg-mocha-crust p-4 rounded-xl shadow-md">
-                                        {renderProjectTable(projectsForStatus)}
-                                    </div>
+                                    {viewMode === 'grid' ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                            {projectsForStatus.map(project => (
+                                                <ProjectCard 
+                                                    key={project.id}
+                                                    project={project} 
+                                                    t={t} 
+                                                    lookups={cardLookups} 
+                                                    onEdit={handleEditClick} 
+                                                    onStatusToggle={handleStatusToggle} 
+                                                    onHistoryClick={handleDateClick}
+                                                />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="bg-latte-crust dark:bg-mocha-crust p-4 rounded-xl shadow-md">
+                                            {renderProjectTable(projectsForStatus)}
+                                        </div>
+                                    )}
                                 </div>
                             )
                         })}
@@ -442,6 +552,15 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
                 projects={projects}
                 profiles={profiles}
                 pages={pages}
+            />
+
+            <HistoryComparisonModal 
+                isOpen={!!selectedHistoryEntry}
+                onClose={() => setSelectedHistoryEntry(null)}
+                historyEntry={selectedHistoryEntry}
+                t={t}
+                onViewFullHistory={() => setActiveTab('history')}
+                renderEntry={renderProjectHistory}
             />
         </div>
     );

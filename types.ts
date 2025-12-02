@@ -1,11 +1,5 @@
 
-
-
-
-
-
-
-export type View = 'projects' | 'domains' | 'profiles' | 'pages' | 'bms' | 'chatbots' | 'history' | 'dashboard' | 'configuration' | 'partnerships';
+export type View = 'projects' | 'domains' | 'profiles' | 'pages' | 'bms' | 'chatbots' | 'history' | 'dashboard' | 'configuration' | 'partnerships' | 'api';
 export type DomainViewMode = 'grouped' | 'language';
 
 export type ProfileStatus = 'Warm up' | 'Stock' | 'In Use' | 'Invalidated';
@@ -171,6 +165,8 @@ export interface HistoryEntry {
     action: 'Create' | 'Update' | 'Delete' | 'Activate' | 'Deactivate';
     details?: string;
     userName?: string;
+    oldData?: any;
+    newData?: any;
 }
 
 export interface Integration {
