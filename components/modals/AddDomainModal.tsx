@@ -5,6 +5,7 @@ import { PlusIcon, CloseIcon } from '../icons';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { Checkbox } from '../ui/Checkbox';
 import { TagInput } from '../ui/TagInput';
+import { generateUUID } from '../../api';
 
 interface AddDomainModalProps {
     isOpen: boolean;
@@ -111,7 +112,7 @@ export const AddDomainModal: React.FC<AddDomainModalProps> = ({ isOpen, onClose,
             .filter(sub => sub.name.trim() || sub.countries.length > 0 || sub.language.trim() || (sub.planningSheetUrl && sub.planningSheetUrl.trim()))
             .map(sub => ({
                 ...sub,
-                id: sub.id || crypto.randomUUID(),
+                id: sub.id || generateUUID(),
                 planningSheetUrl: sub.planningSheetUrl || '',
                 isActive: sub.isActive === false ? false : true
             }));

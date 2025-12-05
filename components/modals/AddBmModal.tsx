@@ -5,6 +5,7 @@ import { PlusIcon, CloseIcon } from '../icons';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { Checkbox } from '../ui/Checkbox';
 import { ApprovalStepSlider } from '../ui/ApprovalStepSlider';
+import { generateUUID } from '../../api';
 
 const appPermissions = [
     'pages_show_list', 'pages_manage_metadata', 'pages_messaging', 'business_management',
@@ -129,14 +130,14 @@ export const AddBmModal: React.FC<AddBmModalProps> = ({ isOpen, onClose, onSave,
                 .filter(acc => acc.name.trim() || acc.accountId.trim())
                 .map(acc => ({
                     ...acc,
-                    id: acc.id || crypto.randomUUID(),
+                    id: acc.id || generateUUID(),
                 }));
 
             const finalApps = apps
                 .filter(app => app.name.trim() || app.appId.trim())
                 .map(app => ({
                     ...app,
-                    id: app.id || crypto.randomUUID(),
+                    id: app.id || generateUUID(),
                 }));
 
             const bmData = {

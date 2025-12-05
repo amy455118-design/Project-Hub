@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Profile, ProfileStatus, ProfileRole } from '../../types';
 import { TrashIcon, LayersIcon, PlusIcon } from '../icons';
 import { SearchableSelect } from '../ui/SearchableSelect';
+import { generateUUID } from '../../api';
 
 export type BulkProfileEntry = Partial<Profile> & {
     localId: string;
@@ -52,7 +53,7 @@ export const AddProfilesBulkModal: React.FC<AddProfilesBulkModalProps> = ({ isOp
         if (isOpen) {
             setProfiles(initialProfiles.map(p => ({
                 ...p,
-                localId: crypto.randomUUID(),
+                localId: generateUUID(),
                 email: (p as any).email || (p.emails && p.emails.length > 0 ? p.emails[0] : '') || '',
                 name: p.name || '',
                 facebookId: p.facebookId || '',

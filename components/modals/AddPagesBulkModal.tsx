@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Page } from '../../types';
 import { CloseIcon, TrashIcon } from '../icons';
 import { SearchableSelect } from '../ui/SearchableSelect';
+import { generateUUID } from '../../api';
 
 export type BulkPageEntry = {
     localId: string;
@@ -30,7 +31,7 @@ export const AddPagesBulkModal: React.FC<AddPagesBulkModalProps> = ({ isOpen, on
     useEffect(() => {
         if (isOpen) {
             setPages(initialPages.map(p => ({
-                localId: crypto.randomUUID(),
+                localId: generateUUID(),
                 id: p.id,
                 name: p.name || '',
                 facebookId: p.facebookId || '',

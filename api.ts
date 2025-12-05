@@ -2,12 +2,25 @@
 import { supabase } from './supabaseClient';
 import { Project, Domain, BM, Partnership, Profile, Page, Integration, HistoryEntry, User, App } from './types';
 
+// Helper for UUID generation (Polyfill for crypto.randomUUID)
+export const generateUUID = () => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    // Fallback using Math.random
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+};
+
 // --- History Helper ---
 const addHistoryEntry = async (entry: Omit<HistoryEntry, 'id' | 'timestamp'>) => {
     try {
         await supabase.from('history').insert({
             ...entry,
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             timestamp: new Date().toISOString()
         });
     } catch (e) {
@@ -124,7 +137,7 @@ export const userApi = {
         return data as User;
     },
     register: async (user: Omit<User, 'id'>, userName?: string): Promise<User | null> => {
-        const id = crypto.randomUUID();
+        const id = generateUUID();
         const newUser = { ...user, id };
 
         // Check duplicates in Supabase
@@ -161,7 +174,7 @@ export const userApi = {
 export const projectApi = {
     save: async (project: Partial<Project> & { id?: string }, userName?: string) => {
         const now = new Date().toISOString();
-        const projectId = project.id || crypto.randomUUID();
+        const projectId = project.id || generateUUID();
         const dataToSave = {
             ...project,
             id: projectId,
@@ -271,7 +284,7 @@ export const domainApi = {
             if (error) throw error;
             addHistoryEntry({ entityType: 'Domain', entityName: domain.name || 'Unknown', action: 'Update', details, userName, oldData, newData: dataToSave });
         } else {
-            const id = crypto.randomUUID();
+            const id = generateUUID();
             const { error } = await supabase.from('domains').insert({ ...dataToSave, id, isActive: true });
             if (error) throw error;
             addHistoryEntry({ entityType: 'Domain', entityName: domain.name || 'Unknown', action: 'Create', userName, newData: dataToSave });
@@ -316,7 +329,7 @@ export const bmApi = {
             if (error) throw error;
             addHistoryEntry({ entityType: 'BM', entityName: bm.name || 'Unknown', action: 'Update', details, userName, oldData, newData: dataToSave });
         } else {
-            const id = crypto.randomUUID();
+            const id = generateUUID();
             const { error } = await supabase.from('bms').insert({ ...dataToSave, id });
             if (error) throw error;
             addHistoryEntry({ entityType: 'BM', entityName: bm.name || 'Unknown', action: 'Create', userName, newData: dataToSave });
@@ -374,7 +387,7 @@ export const partnershipApi = {
             if (error) throw error;
             addHistoryEntry({ entityType: 'Partnership', entityName: p.name || 'Unknown', action: 'Update', details, userName, oldData, newData: dataToSave });
         } else {
-            const id = crypto.randomUUID();
+            const id = generateUUID();
             const { error } = await supabase.from('partnerships').insert({ ...dataToSave, id });
             if (error) throw error;
             addHistoryEntry({ entityType: 'Partnership', entityName: p.name || 'Unknown', action: 'Create', userName, newData: dataToSave });
@@ -390,7 +403,7 @@ export const partnershipApi = {
 // --- Profiles ---
 export const profileApi = {
     save: async (profile: Partial<Profile> & { id?: string }, oldPageIds: string[] = [], userName?: string) => {
-        const profileId = profile.id || crypto.randomUUID();
+        const profileId = profile.id || generateUUID();
         const dataToSave = {
             ...profile,
             id: profileId,
@@ -449,7 +462,7 @@ export const profileApi = {
     },
     bulkUpsert: async (profilesData: Partial<Profile>[], userName?: string) => {
         const profilesToUpsert = profilesData.map(p => ({
-            id: p.id || crypto.randomUUID(),
+            id: p.id || generateUUID(),
             name: p.name,
             facebookId: p.facebookId,
             purchaseDate: p.purchaseDate,
@@ -508,7 +521,7 @@ export const profileApi = {
 // --- Pages ---
 export const pageApi = {
     save: async (page: Partial<Page> & { id?: string }, oldProfileIds: string[] = [], userName?: string) => {
-        const pageId = page.id || crypto.randomUUID();
+        const pageId = page.id || generateUUID();
         const dataToSave = {
             ...page,
             id: pageId,
@@ -570,7 +583,7 @@ export const pageApi = {
     },
     bulkUpsert: async (pagesData: { id?: string; name: string; facebookId: string; profileIds?: string[] }[], userName?: string) => {
         const pagesToUpsert = pagesData.map(p => ({
-            id: p.id || crypto.randomUUID(),
+            id: p.id || generateUUID(),
             name: p.name,
             facebookId: p.facebookId,
             provider: p.id ? undefined : 'Bulk Import',
@@ -629,7 +642,7 @@ export const integrationApi = {
             if (error) throw error;
             addHistoryEntry({ entityType: 'Integration', entityName: integration.name || 'Unknown', action: 'Update', details, userName, oldData, newData: integration });
         } else {
-            const id = crypto.randomUUID();
+            const id = generateUUID();
             const { error } = await supabase.from('integrations').insert({ ...integration, id });
             if (error) throw error;
             addHistoryEntry({ entityType: 'Integration', entityName: integration.name || 'Unknown', action: 'Create', userName, newData: integration });
