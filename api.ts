@@ -1,6 +1,5 @@
-
 import { supabase } from './supabaseClient';
-import { Project, Domain, BM, Partnership, Profile, Page, Integration, HistoryEntry, User, App } from './types';
+import { Project, Domain, BM, Partnership, Profile, Page, Integration, HistoryEntry, User, App, DropdownOption } from './types';
 
 // Helper for UUID generation (Polyfill for crypto.randomUUID)
 export const generateUUID = () => {
@@ -431,22 +430,22 @@ export const profileApi = {
         const addedPageIds = newPageIds.filter(id => !oldPageIds.includes(id));
         const removedPageIds = oldPageIds.filter(id => !newPageIds.includes(id));
 
-        for (const pageId of addedPageIds) {
-            const { data: page } = await supabase.from('pages').select('profileIds').eq('id', pageId).single();
+        for (const pid of addedPageIds) {
+            const { data: page } = await supabase.from('pages').select('profileIds').eq('id', pid).single();
             if (page) {
                 const currentProfileIds = page.profileIds || [];
                 if (!currentProfileIds.includes(profileId)) {
-                    await supabase.from('pages').update({ profileIds: [...currentProfileIds, profileId] }).eq('id', pageId);
+                    await supabase.from('pages').update({ profileIds: [...currentProfileIds, profileId] }).eq('id', pid);
                 }
             }
         }
 
-        for (const pageId of removedPageIds) {
-            const { data: page } = await supabase.from('pages').select('profileIds').eq('id', pageId).single();
+        for (const pid of removedPageIds) {
+            const { data: page } = await supabase.from('pages').select('profileIds').eq('id', pid).single();
             if (page) {
-                const currentProfileIds = page.profileIds || [];
-                const updatedProfileIds = currentProfileIds.filter((id: string) => id !== profileId);
-                await supabase.from('pages').update({ profileIds: updatedProfileIds }).eq('id', pageId);
+                const current = page.profileIds || [];
+                const updated = current.filter((id: string) => id !== profileId);
+                await supabase.from('pages').update({ profileIds: updated }).eq('id', pid);
             }
         }
     },
@@ -652,5 +651,39 @@ export const integrationApi = {
         const { error } = await supabase.from('integrations').delete().eq('id', integration.id);
         if (error) throw error;
         addHistoryEntry({ entityType: 'Integration', entityName: integration.name, action: 'Delete', userName, oldData: integration });
+    }
+};
+
+// --- Dropdown Options ---
+export const dropdownApi = {
+    add: async (context: string, value: string, userName?: string, id?: string) => {
+        const newId = id || generateUUID();
+        
+        // Calculate next order_index
+        const { data: maxOrderData } = await supabase.from('dropdown_options')
+            .select('order_index')
+            .eq('context', context)
+            .order('order_index', { ascending: false })
+            .limit(1);
+            
+        const nextOrder = (maxOrderData && maxOrderData.length > 0 && maxOrderData[0].order_index !== null) 
+            ? maxOrderData[0].order_index + 1 
+            : 0;
+
+        const { error } = await supabase.from('dropdown_options').insert({ id: newId, context, value, order_index: nextOrder });
+        if (error) throw error;
+        addHistoryEntry({ entityType: 'Settings', entityName: context, action: 'Create', details: `Added option: ${value}`, userName });
+    },
+    delete: async (id: string, context: string, value: string, userName?: string) => {
+        const { error } = await supabase.from('dropdown_options').delete().eq('id', id);
+        if (error) throw error;
+        addHistoryEntry({ entityType: 'Settings', entityName: context, action: 'Delete', details: `Removed option: ${value}`, userName });
+    },
+    reorder: async (items: { id: string, order_index: number }[]) => {
+        // Batch updates are better but upsert works well for list of updates
+        const updates = items.map(item => 
+            supabase.from('dropdown_options').update({ order_index: item.order_index }).eq('id', item.id)
+        );
+        await Promise.all(updates);
     }
 };

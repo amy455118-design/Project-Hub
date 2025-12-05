@@ -1,12 +1,12 @@
 
-
 import React, { useState } from 'react';
-import { Integration, User, UserRole } from '../../types';
-import { PlusIcon, EditIcon, TrashIcon, SettingsIcon, UsersIcon } from '../icons';
+import { Integration, User, UserRole, DropdownOption } from '../../types';
+import { PlusIcon, EditIcon, TrashIcon, SettingsIcon, UsersIcon, ListIcon } from '../icons';
 import { AddIntegrationModal } from '../modals/AddIntegrationModal';
 import { UserManagementModal } from '../modals/UserManagementModal';
 import { ConfirmDeleteModal } from '../ui/ConfirmDeleteModal';
 import { EntityHistory } from './EntityHistory';
+import { ConfigurationMenusView } from './ConfigurationMenusView';
 
 interface ConfigurationViewProps {
     t: any;
@@ -16,14 +16,15 @@ interface ConfigurationViewProps {
     user?: User | null;
     userApiKey: string;
     onApiKeyChange: (key: string) => void;
+    dropdownOptions: DropdownOption[];
 }
 
-export const ConfigurationView: React.FC<ConfigurationViewProps> = ({ t, integrations, onSaveIntegration, onDeleteIntegration, user, userApiKey, onApiKeyChange }) => {
+export const ConfigurationView: React.FC<ConfigurationViewProps> = ({ t, integrations, onSaveIntegration, onDeleteIntegration, user, userApiKey, onApiKeyChange, dropdownOptions }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [editingIntegration, setEditingIntegration] = useState<Integration | null>(null);
     const [integrationToDelete, setIntegrationToDelete] = useState<Integration | null>(null);
-    const [activeTab, setActiveTab] = useState<'list' | 'history'>('list');
+    const [activeTab, setActiveTab] = useState<'list' | 'menus' | 'history'>('list');
 
     const handleAddClick = () => {
         setEditingIntegration(null);
@@ -95,7 +96,13 @@ export const ConfigurationView: React.FC<ConfigurationViewProps> = ({ t, integra
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'list' ? 'bg-white dark:bg-mocha-surface2 shadow-sm text-latte-text dark:text-mocha-text' : 'text-latte-subtext0 dark:text-mocha-subtext0 hover:text-latte-text dark:hover:text-mocha-text'}`}
                     onClick={() => setActiveTab('list')}
                 >
-                    {t.list}
+                    {t.integrations}
+                </button>
+                <button
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'menus' ? 'bg-white dark:bg-mocha-surface2 shadow-sm text-latte-text dark:text-mocha-text' : 'text-latte-subtext0 dark:text-mocha-subtext0 hover:text-latte-text dark:hover:text-mocha-text'}`}
+                    onClick={() => setActiveTab('menus')}
+                >
+                    Menus
                 </button>
                 <button
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'history' ? 'bg-white dark:bg-mocha-surface2 shadow-sm text-latte-text dark:text-mocha-text' : 'text-latte-subtext0 dark:text-mocha-subtext0 hover:text-latte-text dark:hover:text-mocha-text'}`}
@@ -105,7 +112,9 @@ export const ConfigurationView: React.FC<ConfigurationViewProps> = ({ t, integra
                 </button>
             </div>
 
-            {activeTab === 'list' ? (
+            {activeTab === 'menus' ? (
+                <ConfigurationMenusView t={t} options={dropdownOptions} userName={user?.name} />
+            ) : activeTab === 'list' ? (
                 <div className="mb-8">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-semibold text-latte-subtext1 dark:text-mocha-subtext1 border-b-2 border-latte-surface1 dark:border-mocha-surface1 pb-2 flex-grow">{t.integrations}</h2>
@@ -145,7 +154,7 @@ export const ConfigurationView: React.FC<ConfigurationViewProps> = ({ t, integra
                     )}
                 </div>
             ) : (
-                <EntityHistory t={t} entityTypes={['Integration']} />
+                <EntityHistory t={t} entityTypes={['Integration', 'Settings']} />
             )}
 
             <AddIntegrationModal

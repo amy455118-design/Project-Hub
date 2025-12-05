@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Profile, Page, Integration } from '../../types';
+import { Profile, Page, Integration, DropdownOption } from '../../types';
 import { PlusIcon, EditIcon, TrashIcon, ProfileIcon, ExternalLinkIcon, UploadCloudIcon, DownloadIcon } from '../icons';
 import { AddProfileModal } from '../modals/AddProfileModal';
 import { AddProfilesBulkModal } from '../modals/AddProfilesBulkModal';
@@ -20,9 +20,10 @@ interface ProfilesViewProps {
     onBulkSaveProfiles: (profiles: Partial<Profile>[]) => Promise<{ success: boolean; errors: { facebookId: string, message: string }[] }>;
     onBulkDeleteProfiles: (ids: string[]) => Promise<void> | void;
     hasApiKey: boolean;
+    dropdownOptions: DropdownOption[];
 }
 
-export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, integrations, onSaveProfile, onDeleteProfile, onParseProfiles, onBulkSaveProfiles, onBulkDeleteProfiles, hasApiKey }) => {
+export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, integrations, onSaveProfile, onDeleteProfile, onParseProfiles, onBulkSaveProfiles, onBulkDeleteProfiles, hasApiKey, dropdownOptions }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
     const [profileToDelete, setProfileToDelete] = useState<Profile | null>(null);
@@ -176,6 +177,7 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, 
     };
 
     const getStatusColor = (status: string) => {
+        // Safe check if status options match standard ones, otherwise provide a default
         switch (status) {
             case 'In Use': return 'bg-latte-green/20 text-latte-green dark:bg-mocha-green/20 dark:text-mocha-green';
             case 'Warm up': return 'bg-latte-blue/20 text-latte-blue dark:bg-mocha-blue/20 dark:text-mocha-blue';
@@ -365,6 +367,7 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, 
                 t={t} 
                 editingProfile={editingProfile}
                 pageOptions={pageOptions}
+                dropdownOptions={dropdownOptions}
             />
             <AddProfilesBulkModal
                 isOpen={isBulkModalOpen}

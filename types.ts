@@ -2,14 +2,12 @@
 export type View = 'projects' | 'domains' | 'profiles' | 'pages' | 'bms' | 'chatbots' | 'history' | 'dashboard' | 'configuration' | 'partnerships' | 'api';
 export type DomainViewMode = 'grouped' | 'language';
 
-export type ProfileStatus = 'Warm up' | 'Stock' | 'In Use' | 'Invalidated';
-export type AccountStatus = 'OK' | 'The profile has some issues' | 'Profile is at risk';
-export enum ProfileRole {
-    Advertiser = 'Advertiser',
-    Contingency = 'Contingency',
-    Bot = 'Bot',
-    Backup = 'Backup',
-}
+// Keep these types as loose strings now since they are dynamic, 
+// but we keep the type aliases for code readability
+export type ProfileStatus = string;
+export type AccountStatus = string;
+export type ProfileRole = string;
+export type ProjectStatus = string;
 
 export type UserRole = 'Content' | 'Support' | 'Structure' | 'Analyst' | 'Creatives' | 'Broadcast' | 'Development' | 'Management' | 'Owner';
 
@@ -134,7 +132,6 @@ export interface Profile {
     twoFactorCode?: string;
 }
 
-export type ProjectStatus = 'In Progress' | 'Pending' | 'Active' | 'Deactivated' | 'Paused' | 'Broad';
 export type Analyst = string;
 
 export interface Project {
@@ -160,7 +157,7 @@ export interface Project {
 export interface HistoryEntry {
     id: string;
     timestamp: Date;
-    entityType: 'Domain' | 'Subdomain' | 'BM' | 'Project' | 'App' | 'Page' | 'Profile' | 'Partnership' | 'Integration' | 'User';
+    entityType: 'Domain' | 'Subdomain' | 'BM' | 'Project' | 'App' | 'Page' | 'Profile' | 'Partnership' | 'Integration' | 'User' | 'Settings';
     entityName: string;
     action: 'Create' | 'Update' | 'Delete' | 'Activate' | 'Deactivate';
     details?: string;
@@ -177,4 +174,11 @@ export interface Integration {
     username: string;
     password: string;
     userId: string;
+}
+
+export interface DropdownOption {
+    id: string;
+    context: string;
+    value: string;
+    order_index?: number;
 }

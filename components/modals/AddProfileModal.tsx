@@ -1,7 +1,6 @@
 
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Profile, ProfileRole, ProfileStatus, AccountStatus } from '../../types';
+import { Profile, ProfileRole, ProfileStatus, AccountStatus, DropdownOption } from '../../types';
 import { SearchableSelect } from '../ui/SearchableSelect';
 
 interface AddProfileModalProps {
@@ -11,42 +10,17 @@ interface AddProfileModalProps {
     t: any;
     editingProfile?: Profile | null;
     pageOptions: { value: string; label: string }[];
+    dropdownOptions: DropdownOption[];
 }
 
-const profileStatusOptions: { value: ProfileStatus; label: string }[] = [
-    { value: 'Warm up', label: 'statusWarmUp' },
-    { value: 'Stock', label: 'statusStock' },
-    { value: 'In Use', label: 'statusInUse' },
-    { value: 'Invalidated', label: 'statusInvalidated' }
-];
-
-const profileRoleOptions: { value: ProfileRole; label: string }[] = [
-    { value: ProfileRole.Advertiser, label: 'roleAdvertiser' },
-    { value: ProfileRole.Contingency, label: 'roleContingency' },
-    { value: ProfileRole.Bot, label: 'roleBot' },
-    { value: ProfileRole.Backup, label: 'roleBackup' }
-];
-
-const securityKeyOptions = [
-    { value: 'Sara', label: 'Sara' },
-    { value: 'Marcos', label: 'Marcos' },
-    { value: 'Francisco', label: 'Francisco' }
-];
-
-const accountStatusOptions: { value: AccountStatus; label: string }[] = [
-    { value: 'OK', label: 'accountStatusOK' },
-    { value: 'The profile has some issues', label: 'accountStatusIssues' },
-    { value: 'Profile is at risk', label: 'accountStatusRisk' }
-];
-
-export const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSave, t, editingProfile, pageOptions }) => {
+export const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSave, t, editingProfile, pageOptions, dropdownOptions }) => {
     const [name, setName] = useState('');
     const [facebookId, setFacebookId] = useState('');
     const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
     const [supplier, setSupplier] = useState('');
     const [price, setPrice] = useState<number | ''>('');
     const [status, setStatus] = useState<ProfileStatus>('Stock');
-    const [role, setRole] = useState<ProfileRole>(ProfileRole.Advertiser);
+    const [role, setRole] = useState<ProfileRole>('Advertiser');
     const [securityKeys, setSecurityKeys] = useState<string[]>([]);
     const [email, setEmail] = useState('');
     const [accountStatus, setAccountStatus] = useState<AccountStatus>('OK');
@@ -64,7 +38,7 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClos
         setSupplier('');
         setPrice('');
         setStatus('Stock');
-        setRole(ProfileRole.Advertiser);
+        setRole('Advertiser');
         setSecurityKeys([]);
         setEmail('');
         setAccountStatus('OK');
@@ -101,9 +75,30 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClos
         }
     }, [isOpen, editingProfile, resetForm]);
 
-    const translatedStatusOptions = useMemo(() => profileStatusOptions.map(opt => ({...opt, label: t[opt.label]})), [t]);
-    const translatedRoleOptions = useMemo(() => profileRoleOptions.map(opt => ({...opt, label: t[opt.label]})), [t]);
-    const translatedAccountStatusOptions = useMemo(() => accountStatusOptions.map(opt => ({...opt, label: t[opt.label]})), [t]);
+    // Use dynamic options with safety checks
+    const profileStatusOptions = useMemo(() => 
+        (dropdownOptions || [])
+            .filter(o => o.context === 'profile_status')
+            .map(o => ({ value: o.value, label: t[o.value] || o.value })) 
+    , [dropdownOptions, t]);
+
+    const profileRoleOptions = useMemo(() => 
+        (dropdownOptions || [])
+            .filter(o => o.context === 'profile_role')
+            .map(o => ({ value: o.value, label: t[o.value] || o.value }))
+    , [dropdownOptions, t]);
+
+    const accountStatusOptions = useMemo(() => 
+        (dropdownOptions || [])
+            .filter(o => o.context === 'account_status')
+            .map(o => ({ value: o.value, label: t[o.value] || o.value }))
+    , [dropdownOptions, t]);
+
+    const securityKeyOptions = useMemo(() => 
+        (dropdownOptions || [])
+            .filter(o => o.context === 'security_keys')
+            .map(o => ({ value: o.value, label: o.value }))
+    , [dropdownOptions]);
     
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -182,15 +177,15 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClos
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                              <div>
                                 <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.profileStatus}</label>
-                                <SearchableSelect options={translatedStatusOptions} selected={status} onChange={setStatus} placeholder={t.selectProfileStatus} searchPlaceholder={t.searchStatus} />
+                                <SearchableSelect options={profileStatusOptions} selected={status} onChange={setStatus} placeholder={t.selectProfileStatus} searchPlaceholder={t.searchStatus} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.profileRole}</label>
-                                <SearchableSelect options={translatedRoleOptions} selected={role} onChange={setRole} placeholder={t.selectRole} searchPlaceholder={t.searchRole} />
+                                <SearchableSelect options={profileRoleOptions} selected={role} onChange={setRole} placeholder={t.selectRole} searchPlaceholder={t.searchRole} />
                             </div>
                              <div>
                                 <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.accountStatus}</label>
-                                <SearchableSelect options={translatedAccountStatusOptions} selected={accountStatus} onChange={setAccountStatus} placeholder={t.selectAccountStatus} searchPlaceholder={t.searchStatus} />
+                                <SearchableSelect options={accountStatusOptions} selected={accountStatus} onChange={setAccountStatus} placeholder={t.selectAccountStatus} searchPlaceholder={t.searchStatus} />
                             </div>
                         </div>
                     </div>

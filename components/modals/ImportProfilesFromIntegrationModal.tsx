@@ -137,7 +137,7 @@ export const ImportProfilesFromIntegrationModal: React.FC<ImportProfilesFromInte
                 // Add sensible defaults for required fields if they are missing
                 supplier: 'Integration Import',
                 status: 'In Use' as ProfileStatus,
-                role: ProfileRole.Bot,
+                role: 'Bot' as ProfileRole,
                 price: 0,
                 // Ensure other fields are present
                 emails: [],

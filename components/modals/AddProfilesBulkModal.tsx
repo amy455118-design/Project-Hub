@@ -21,6 +21,10 @@ interface AddProfilesBulkModalProps {
     pageOptions?: { value: string; label: string }[];
 }
 
+// NOTE: In bulk mode, we are keeping simplified hardcoded defaults or simple string inputs 
+// for now to avoid complexity of passing dynamic options deep into this list renderer, 
+// or one could update App.tsx to pass them here too. 
+// For this iteration, we allow free text or standard defaults to prevent breaking bulk flow.
 const profileStatusOptions: { value: ProfileStatus; label: string }[] = [
     { value: 'Warm up', label: 'statusWarmUp' },
     { value: 'Stock', label: 'statusStock' },
@@ -29,16 +33,10 @@ const profileStatusOptions: { value: ProfileStatus; label: string }[] = [
 ];
 
 const profileRoleOptions: { value: ProfileRole; label: string }[] = [
-    { value: ProfileRole.Advertiser, label: 'roleAdvertiser' },
-    { value: ProfileRole.Contingency, label: 'roleContingency' },
-    { value: ProfileRole.Bot, label: 'roleBot' },
-    { value: ProfileRole.Backup, label: 'roleBackup' }
-];
-
-const securityKeyOptions = [
-    { value: 'Sara', label: 'Sara' },
-    { value: 'Marcos', label: 'Marcos' },
-    { value: 'Francisco', label: 'Francisco' }
+    { value: 'Advertiser', label: 'roleAdvertiser' },
+    { value: 'Contingency', label: 'roleContingency' },
+    { value: 'Bot', label: 'roleBot' },
+    { value: 'Backup', label: 'roleBackup' }
 ];
 
 export const AddProfilesBulkModal: React.FC<AddProfilesBulkModalProps> = ({ isOpen, onClose, onSave, t, initialProfiles, pageOptions = [] }) => {
@@ -64,7 +62,7 @@ export const AddProfilesBulkModal: React.FC<AddProfilesBulkModalProps> = ({ isOp
                 supplier: p.supplier || '',
                 price: p.price || 0,
                 status: p.status || 'Stock' as ProfileStatus,
-                role: p.role || ProfileRole.Advertiser,
+                role: p.role || 'Advertiser',
                 driveLink: p.driveLink || '',
                 securityKeys: p.securityKeys || [],
                 pageIds: p.pageIds || [],
@@ -192,6 +190,7 @@ export const AddProfilesBulkModal: React.FC<AddProfilesBulkModalProps> = ({ isOp
                                         onChange={val => handleProfileChange(profile.localId, 'status', val)}
                                         placeholder={t.selectProfileStatus}
                                         searchPlaceholder={t.searchStatus}
+                                        creatable // Allow typing custom status here since we don't have dynamic list access easily
                                     />
                                 </div>
                                 <div>
@@ -202,6 +201,7 @@ export const AddProfilesBulkModal: React.FC<AddProfilesBulkModalProps> = ({ isOp
                                         onChange={val => handleProfileChange(profile.localId, 'role', val)}
                                         placeholder={t.selectRole}
                                         searchPlaceholder={t.searchRole}
+                                        creatable
                                     />
                                 </div>
                                 <div>
@@ -259,13 +259,12 @@ export const AddProfilesBulkModal: React.FC<AddProfilesBulkModalProps> = ({ isOp
                                 </div>
                                 <div>
                                     <label className={labelClass}>{t.securityKey}</label>
-                                    <SearchableSelect 
-                                        options={securityKeyOptions} 
-                                        selected={profile.securityKeys || []} 
-                                        onChange={val => handleProfileChange(profile.localId, 'securityKeys', val)} 
-                                        placeholder={t.selectSecurityKey} 
-                                        searchPlaceholder={t.search}
-                                        multiple
+                                    <input 
+                                        type="text"
+                                        value={profile.securityKeys?.join(', ')} 
+                                        onChange={e => handleProfileChange(profile.localId, 'securityKeys', e.target.value.split(',').map(s => s.trim()))}
+                                        placeholder="Key1, Key2..."
+                                        className={inputClass}
                                     />
                                 </div>
                             </div>

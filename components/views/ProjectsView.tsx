@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Project, ProjectStatus, Analyst, Domain, BM, Partnership, Profile, Page, User, HistoryEntry } from '../../types';
+import { Project, ProjectStatus, Analyst, Domain, BM, Partnership, Profile, Page, User, HistoryEntry, DropdownOption } from '../../types';
 import { PlusIcon, ProjectIcon, EditIcon, ChevronDownIcon, FilterIcon, LayoutGridIcon, ListIcon } from '../icons';
 import { AddProjectModal } from '../modals/AddProjectModal';
 import { EntityHistory } from './EntityHistory';
@@ -23,19 +23,11 @@ interface ProjectsViewProps {
     profiles: Profile[];
     pages: Page[];
     users: User[];
+    dropdownOptions: DropdownOption[];
 }
 
-const projectStatusOptions: { value: ProjectStatus, label: string }[] = [
-    { value: 'In Progress', label: 'In Progress' },
-    { value: 'Pending', label: 'Pending' },
-    { value: 'Active', label: 'Active' },
-    { value: 'Deactivated', label: 'Deactivated' },
-    { value: 'Paused', label: 'Paused' },
-    { value: 'Broad', label: 'Broad' }
-];
-
 export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
-    const { t, projects, onSaveProject, getCountryName, getLanguageName, countryOptions, languageOptions, domains, bms, partnerships, profiles, pages, users } = props;
+    const { t, projects, onSaveProject, getCountryName, getLanguageName, countryOptions, languageOptions, domains, bms, partnerships, profiles, pages, users, dropdownOptions } = props;
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [expandedProjectIds, setExpandedProjectIds] = useState<string[]>([]);
@@ -147,7 +139,11 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
             .map(u => ({ value: u.name, label: u.name }));
     }, [users]);
     
-    const statusOptions = useMemo(() => projectStatusOptions.map(s => ({...s, label: t[`status${s.value.replace(/\s/g, '')}`] || s.label})), [t]);
+    const statusOptions = useMemo(() => 
+        (dropdownOptions || [])
+            .filter(o => o.context === 'project_status')
+            .map(o => ({ value: o.value, label: t[o.value] || o.value }))
+    , [dropdownOptions, t]);
 
 
     const filteredProjects = useMemo(() => {
@@ -182,15 +178,23 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
 
 
     const projectsByStatus = useMemo(() => {
-        return filteredProjects.reduce((acc, project) => {
+        // Use all defined status options to structure the list, plus any rogue statuses found in projects
+        const statusMap: Record<string, Project[]> = {};
+        
+        statusOptions.forEach(opt => {
+            statusMap[opt.value] = [];
+        });
+
+        filteredProjects.forEach(project => {
             const status = project.status;
-            if (!acc[status]) {
-                acc[status] = [];
+            if (!statusMap[status]) {
+                statusMap[status] = [];
             }
-            acc[status].push(project);
-            return acc;
-        }, {} as Record<ProjectStatus, Project[]>);
-    }, [filteredProjects]);
+            statusMap[status].push(project);
+        });
+        
+        return statusMap;
+    }, [filteredProjects, statusOptions]);
 
 
     const handleSave = (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
@@ -234,24 +238,17 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
         }
     };
 
-    const getNextStatus = (current: ProjectStatus): ProjectStatus => {
-        switch (current) {
-            case 'In Progress': return 'Active';
-            case 'Pending': return 'Active';
-            case 'Active': return 'Paused';
-            case 'Paused': return 'Broad';
-            case 'Broad': return 'Deactivated';
-            case 'Deactivated': return 'Active';
-            default: return 'Pending';
-        }
-    }
-
+    // Simplified toggle for standard flows (this logic might need to be dynamic or removed if fully custom statuses are used, but keeping simple loop for now based on index)
     const handleStatusToggle = (project: Project) => {
-        const nextStatus = getNextStatus(project.status);
-        onSaveProject({ ...project, status: nextStatus });
+        const currentIndex = statusOptions.findIndex(s => s.value === project.status);
+        if (currentIndex !== -1) {
+            const nextIndex = (currentIndex + 1) % statusOptions.length;
+            onSaveProject({ ...project, status: statusOptions[nextIndex].value });
+        }
     };
 
     const getStatusColor = (status: ProjectStatus) => {
+        // Fallback colors for known statuses, default for custom
         switch (status) {
             case 'Active': return 'bg-latte-green/20 text-latte-green dark:bg-mocha-green/20 dark:text-mocha-green hover:bg-latte-green/30 dark:hover:bg-mocha-green/30';
             case 'In Progress': return 'bg-latte-blue/20 text-latte-blue dark:bg-mocha-blue/20 dark:text-mocha-blue hover:bg-latte-blue/30 dark:hover:bg-mocha-blue/30';
@@ -498,7 +495,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
                     </div>
                 ) : (
                     <div className="space-y-8">
-                        {projectStatusOptions.map(statusOption => {
+                        {statusOptions.map(statusOption => {
                             const projectsForStatus = projectsByStatus[statusOption.value];
                             if (!projectsForStatus || projectsForStatus.length === 0) return null;
                             return (
@@ -552,7 +549,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
                 bms={bms}
                 partnerships={partnerships}
                 analystOptions={analystOptions}
-                projectStatusOptions={projectStatusOptions.map(s => ({...s, label: t[`status${s.value.replace(/\s/g, '')}`]}))}
+                projectStatusOptions={statusOptions}
                 projects={projects}
                 profiles={profiles}
                 pages={pages}
