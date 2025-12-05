@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Project, Domain, BM, Partnership, App as AppData, Profile, Page, View, DomainViewMode, ProfileRole, Integration, ProfileStatus, AccountStatus, User } from './types';
 import { GoogleGenAI, Type } from "@google/genai";
@@ -217,6 +218,7 @@ const translations = {
         driveLink: "Link do Drive",
         noProfiles: "Nenhum perfil encontrado.",
         areYouSureDeleteProfile: "Tem certeza que deseja excluir este perfil?",
+        areYouSureBulkDeleteProfiles: "Tem certeza que deseja excluir os perfis selecionados?",
         entityProfile: "Perfil",
         statusWarmUp: "Aquecimento",
         statusStock: "Estoque",
@@ -509,6 +511,7 @@ const translations = {
         driveLink: "Drive Link",
         noProfiles: "No profiles found.",
         areYouSureDeleteProfile: "Are you sure you want to delete this profile?",
+        areYouSureBulkDeleteProfiles: "Are you sure you want to delete the selected profiles?",
         entityProfile: "Profile",
         statusWarmUp: "Warm Up",
         statusStock: "Stock",
@@ -801,6 +804,7 @@ const translations = {
         driveLink: "Link Drive",
         noProfiles: "No se encontraron perfiles.",
         areYouSureDeleteProfile: "¿Estás seguro de que deseas eliminar este perfil?",
+        areYouSureBulkDeleteProfiles: "¿Estás seguro de que deseas eliminar los perfiles seleccionados?",
         entityProfile: "Perfil",
         statusWarmUp: "Calentamiento",
         statusStock: "Stock",
@@ -1066,7 +1070,7 @@ export const App = () => {
                     domainApi.updateSubdomains(did, newSubdomains, domain.name, { name: subName, action: a ? 'Activate' : 'Deactivate' }, userName);
                 }
             }} getCountryName={(c) => c} getLanguageName={(l) => l} countryOptions={countryList.map(c => ({ value: c.en, label: c[language] }))} languageOptions={languageList.map(l => ({ value: l.en, label: l[language] }))} projectOptions={projects.map(p => ({ value: p.id, label: p.name }))} viewMode={domainViewMode} setViewMode={setDomainViewMode} />;
-            case 'profiles': return <ProfilesView t={t} profiles={profiles} pages={pages} integrations={integrations} onSaveProfile={(p) => profileApi.save(p, [], userName)} onDeleteProfile={(p) => profileApi.delete(p, userName)} onParseProfiles={onParseProfiles} onBulkSaveProfiles={async (p) => { await profileApi.bulkUpsert(p, userName); return { success: true, errors: [] }; }} hasApiKey={!!process.env.API_KEY} />;
+            case 'profiles': return <ProfilesView t={t} profiles={profiles} pages={pages} integrations={integrations} onSaveProfile={(p) => profileApi.save(p, [], userName)} onDeleteProfile={(p) => profileApi.delete(p, userName)} onParseProfiles={onParseProfiles} onBulkSaveProfiles={async (p) => { await profileApi.bulkUpsert(p, userName); return { success: true, errors: [] }; }} onBulkDeleteProfiles={(ids) => profileApi.bulkDelete(ids, userName)} hasApiKey={!!process.env.API_KEY} />;
             case 'pages': return <PagesView t={t} pages={pages} profiles={profiles} integrations={integrations} onSavePage={(p) => pageApi.save(p, [], userName)} onDeletePage={(p) => pageApi.delete(p, userName)} onTranscribeImage={onTranscribeImage} onBulkSavePages={async (p) => { await pageApi.bulkUpsert(p, userName); return { success: true, errors: [] }; }} onBulkDeletePages={(ids) => pageApi.bulkDelete(ids, userName)} hasApiKey={!!process.env.API_KEY} />;
             case 'bms': return <BMsView t={t} bms={bms} partnerships={partnerships} onSaveBm={(b) => bmApi.save(b, userName)} onDeleteBm={(b) => bmApi.delete(b, userName)} getCountryName={(c) => c} countryOptions={countryList.map(c => ({ value: c.en, label: c[language] }))} detailViewType={bmDetailViewType} setDetailViewType={setBmDetailViewType} partnershipOptions={partnerships.map(p => ({ value: p.id, label: p.name }))} projectOptions={projects.map(p => ({ value: p.id, label: p.name }))} profileOptions={profiles.map(p => ({ value: p.id, label: p.name }))} pageOptions={pages.map(p => ({ value: p.id, label: p.name }))} />;
             case 'chatbots': return <ChatbotsView t={t} bms={bms} partnerships={partnerships} projects={projects} onSaveApp={(app, bmId) => { 

@@ -8,9 +8,10 @@ import { HistoryComparisonModal } from '../modals/HistoryComparisonModal';
 interface EntityHistoryProps {
     t: any;
     entityTypes: HistoryEntry['entityType'][];
+    renderEntry?: (data: any, type: 'old' | 'new', changedFields: string[]) => React.ReactNode;
 }
 
-export const EntityHistory: React.FC<EntityHistoryProps> = ({ t, entityTypes }) => {
+export const EntityHistory: React.FC<EntityHistoryProps> = ({ t, entityTypes, renderEntry }) => {
     const [history, setHistory] = useState<HistoryEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedEntry, setSelectedEntry] = useState<HistoryEntry | null>(null);
@@ -129,6 +130,7 @@ export const EntityHistory: React.FC<EntityHistoryProps> = ({ t, entityTypes }) 
                 onClose={() => setSelectedEntry(null)}
                 historyEntry={selectedEntry}
                 t={t}
+                renderEntry={renderEntry}
             />
         </div>
     );

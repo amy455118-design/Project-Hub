@@ -533,7 +533,11 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
                     </div>
                 )
             ) : (
-                <EntityHistory t={t} entityTypes={['Project']} />
+                <EntityHistory 
+                    t={t} 
+                    entityTypes={['Project']} 
+                    renderEntry={renderProjectHistory}
+                />
             )}
 
             <AddProjectModal

@@ -18,10 +18,11 @@ interface ProfilesViewProps {
     onDeleteProfile: (profile: Profile) => void;
     onParseProfiles: (files: File[]) => Promise<Partial<Profile>[]>;
     onBulkSaveProfiles: (profiles: Partial<Profile>[]) => Promise<{ success: boolean; errors: { facebookId: string, message: string }[] }>;
+    onBulkDeleteProfiles: (ids: string[]) => Promise<void> | void;
     hasApiKey: boolean;
 }
 
-export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, integrations, onSaveProfile, onDeleteProfile, onParseProfiles, onBulkSaveProfiles, hasApiKey }) => {
+export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, integrations, onSaveProfile, onDeleteProfile, onParseProfiles, onBulkSaveProfiles, onBulkDeleteProfiles, hasApiKey }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
     const [profileToDelete, setProfileToDelete] = useState<Profile | null>(null);
@@ -33,6 +34,7 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [selectedProfileIds, setSelectedProfileIds] = useState<Set<string>>(new Set());
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [activeTab, setActiveTab] = useState<'list' | 'history'>('list');
 
     const handleSave = (profileData: Omit<Profile, 'id'> & { id?: string }) => {
@@ -117,6 +119,16 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, 
         setIsBulkModalOpen(true);
     };
 
+    const handleBulkDeleteClick = () => {
+        setShowBulkDeleteConfirm(true);
+    };
+
+    const confirmBulkDelete = async () => {
+        await onBulkDeleteProfiles(Array.from(selectedProfileIds));
+        setSelectedProfileIds(new Set());
+        setShowBulkDeleteConfirm(false);
+    };
+
     const handleExport = () => {
         const selectedProfiles = profiles.filter(p => selectedProfileIds.has(p.id));
         if (selectedProfiles.length === 0) return;
@@ -190,10 +202,12 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, 
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-latte-text dark:text-mocha-text">{t.profiles}</h1>
                 <div className="flex space-x-2">
-                    <button onClick={handleImportIntegrationClick} className="flex items-center space-x-2 bg-latte-teal text-white dark:bg-mocha-teal dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">
-                        <UploadCloudIcon className="w-5 h-5" />
-                        <span>{t.importFromIntegration}</span>
-                    </button>
+                    {selectedProfileIds.size === 0 && (
+                        <button onClick={handleImportIntegrationClick} className="flex items-center space-x-2 bg-latte-teal text-white dark:bg-mocha-teal dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">
+                            <UploadCloudIcon className="w-5 h-5" />
+                            <span>{t.importFromIntegration}</span>
+                        </button>
+                    )}
 
                     {selectedProfileIds.size > 0 && (
                         <>
@@ -211,28 +225,37 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, 
                                 <DownloadIcon className="w-5 h-5" />
                                 <span>{t.exportToAdsPower}</span>
                             </button>
+                            <button 
+                                onClick={handleBulkDeleteClick} 
+                                className="flex items-center space-x-2 bg-latte-red text-white dark:bg-mocha-red dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                            >
+                                <TrashIcon className="w-5 h-5" />
+                                <span>{t.deleteSelected} ({selectedProfileIds.size})</span>
+                            </button>
                         </>
                     )}
 
-                    <div className="relative group">
-                        <button 
-                            onClick={handleBulkUploadClick} 
-                            disabled={isParsing || !hasApiKey}
-                            className="flex items-center space-x-2 bg-latte-sky text-white dark:bg-mocha-sky dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isParsing ? (
-                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            ) : (
-                                <UploadCloudIcon className="w-5 h-5" />
+                    {selectedProfileIds.size === 0 && (
+                        <div className="relative group">
+                            <button 
+                                onClick={handleBulkUploadClick} 
+                                disabled={isParsing || !hasApiKey}
+                                className="flex items-center space-x-2 bg-latte-sky text-white dark:bg-mocha-sky dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isParsing ? (
+                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                    <UploadCloudIcon className="w-5 h-5" />
+                                )}
+                                <span>{isParsing ? t.parsingProfiles : t.addProfilesBulk}</span>
+                            </button>
+                            {!hasApiKey && (
+                                <div className="absolute bottom-full mb-2 right-0 w-64 p-2 bg-latte-surface2 dark:bg-mocha-surface2 rounded shadow-lg text-xs z-10 text-latte-text dark:text-mocha-text border border-latte-overlay0 dark:border-mocha-overlay0 hidden group-hover:block">
+                                    {t.aiDisabledWarning} <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-latte-mauve dark:text-mocha-mauve underline font-bold ml-1">{t.getApiKey}</a>
+                                </div>
                             )}
-                            <span>{isParsing ? t.parsingProfiles : t.addProfilesBulk}</span>
-                        </button>
-                        {!hasApiKey && (
-                            <div className="absolute bottom-full mb-2 right-0 w-64 p-2 bg-latte-surface2 dark:bg-mocha-surface2 rounded shadow-lg text-xs z-10 text-latte-text dark:text-mocha-text border border-latte-overlay0 dark:border-mocha-overlay0 hidden group-hover:block">
-                                {t.aiDisabledWarning} <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-latte-mauve dark:text-mocha-mauve underline font-bold ml-1">{t.getApiKey}</a>
-                            </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                     
                     <input 
                         type="file" 
@@ -366,6 +389,15 @@ export const ProfilesView: React.FC<ProfilesViewProps> = ({ t, profiles, pages, 
                 onConfirm={handleDeleteConfirm}
                 title={t.confirmDelete}
                 message={<>{t.areYouSureDeleteProfile} <strong className="text-latte-text dark:text-mocha-text">{profileToDelete?.name}</strong>?</>}
+                t={t}
+            />
+
+            <ConfirmDeleteModal
+                isOpen={showBulkDeleteConfirm}
+                onClose={() => setShowBulkDeleteConfirm(false)}
+                onConfirm={confirmBulkDelete}
+                title={t.confirmBulkDelete || "Confirm Bulk Delete"}
+                message={`${t.areYouSureBulkDeleteProfiles || "Are you sure you want to delete the selected profiles?"} (${selectedProfileIds.size})`}
                 t={t}
             />
         </div>

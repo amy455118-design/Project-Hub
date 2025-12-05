@@ -442,6 +442,11 @@ export const profileApi = {
         if (error) throw error;
         addHistoryEntry({ entityType: 'Profile', entityName: profile.name, action: 'Delete', userName, oldData: profile });
     },
+    bulkDelete: async (ids: string[], userName?: string) => {
+        const { error } = await supabase.from('profiles').delete().in('id', ids);
+        if (error) throw error;
+        addHistoryEntry({ entityType: 'Profile', entityName: `${ids.length} Profiles`, action: 'Delete', userName });
+    },
     bulkUpsert: async (profilesData: Partial<Profile>[], userName?: string) => {
         const profilesToUpsert = profilesData.map(p => ({
             id: p.id || crypto.randomUUID(),
