@@ -1,6 +1,6 @@
 
 export type View = 'projects' | 'domains' | 'profiles' | 'pages' | 'bms' | 'chatbots' | 'history' | 'dashboard' | 'configuration' | 'partnerships' | 'api';
-export type DomainViewMode = 'grouped' | 'language';
+export type DomainViewMode = 'grouped' | 'language' | 'workflow' | 'ungrouped'; // Updated view modes
 
 // Keep these types as loose strings now since they are dynamic, 
 // but we keep the type aliases for code readability
@@ -68,6 +68,7 @@ export interface Page {
     facebookId: string;
     provider: string;
     profileIds?: string[];
+    status?: string; // 'OK' | 'Checkpoint' | 'Restricted' | 'Suspended'
 }
 
 export interface BM {
@@ -181,4 +182,5 @@ export interface DropdownOption {
     context: string;
     value: string;
     order_index?: number;
+    color?: string;
 }

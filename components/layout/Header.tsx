@@ -1,18 +1,17 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { GlobeIcon, MoonIcon, SunIcon, LogOutIcon, SettingsIcon } from '../icons';
 
 interface HeaderProps {
-    t: any;
-    language: 'pt' | 'en' | 'es';
-    onLanguageChange: (lang: 'pt' | 'en' | 'es') => void;
     theme: 'light' | 'dark';
     onThemeToggle: () => void;
     onLogout: () => void;
     onSettingsClick: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ t, language, onLanguageChange, theme, onThemeToggle, onLogout, onSettingsClick }) => {
+export const Header: React.FC<HeaderProps> = ({ theme, onThemeToggle, onLogout, onSettingsClick }) => {
+    const { t, i18n } = useTranslation();
     const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
     const languageDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -29,8 +28,8 @@ export const Header: React.FC<HeaderProps> = ({ t, language, onLanguageChange, t
         };
     }, []);
     
-    const handleLanguageChange = (lang: 'pt' | 'en' | 'es') => {
-        onLanguageChange(lang);
+    const handleLanguageChange = (lang: string) => {
+        i18n.changeLanguage(lang);
         setIsLanguageDropdownOpen(false);
     };
 
@@ -40,7 +39,7 @@ export const Header: React.FC<HeaderProps> = ({ t, language, onLanguageChange, t
                 <button
                     onClick={onSettingsClick}
                     className="p-2 rounded-lg hover:bg-latte-surface0 dark:hover:bg-mocha-surface0 text-latte-subtext1 dark:text-mocha-subtext1"
-                    aria-label={t.configuration}
+                    aria-label={t('configuration')}
                 >
                     <SettingsIcon className="w-6 h-6" />
                 </button>
@@ -52,7 +51,7 @@ export const Header: React.FC<HeaderProps> = ({ t, language, onLanguageChange, t
                         className="flex items-center space-x-2 p-2 rounded-lg hover:bg-latte-surface0 dark:hover:bg-mocha-surface0"
                     >
                         <GlobeIcon className="w-5 h-5 text-latte-subtext1 dark:text-mocha-subtext1" />
-                        <span className="uppercase font-medium text-sm">{language}</span>
+                        <span className="uppercase font-medium text-sm">{i18n.language || 'pt'}</span>
                     </button>
                     {isLanguageDropdownOpen && (
                         <div className="absolute right-0 mt-2 w-32 bg-latte-mantle dark:bg-mocha-mantle rounded-lg shadow-xl border border-latte-surface1 dark:border-mocha-surface1 z-10">
@@ -68,10 +67,10 @@ export const Header: React.FC<HeaderProps> = ({ t, language, onLanguageChange, t
                 <button
                     onClick={onLogout}
                     className="p-2 rounded-lg hover:bg-latte-surface0 dark:hover:bg-mocha-surface0 flex items-center space-x-2 text-latte-red dark:text-mocha-red"
-                    aria-label={t.logout}
+                    aria-label={t('logout')}
                 >
                     <LogOutIcon className="w-5 h-5" />
-                    <span className="hidden sm:inline text-sm font-medium">{t.logout}</span>
+                    <span className="hidden sm:inline text-sm font-medium">{t('logout')}</span>
                 </button>
             </div>
         </header>

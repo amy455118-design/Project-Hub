@@ -1,3 +1,4 @@
+
 import { supabase } from './supabaseClient';
 import { Project, Domain, BM, Partnership, Profile, Page, Integration, HistoryEntry, User, App, DropdownOption } from './types';
 
@@ -656,7 +657,7 @@ export const integrationApi = {
 
 // --- Dropdown Options ---
 export const dropdownApi = {
-    add: async (context: string, value: string, userName?: string, id?: string) => {
+    add: async (context: string, value: string, color?: string, userName?: string, id?: string) => {
         const newId = id || generateUUID();
         
         // Calculate next order_index
@@ -670,9 +671,14 @@ export const dropdownApi = {
             ? maxOrderData[0].order_index + 1 
             : 0;
 
-        const { error } = await supabase.from('dropdown_options').insert({ id: newId, context, value, order_index: nextOrder });
+        const { error } = await supabase.from('dropdown_options').insert({ id: newId, context, value, order_index: nextOrder, color });
         if (error) throw error;
         addHistoryEntry({ entityType: 'Settings', entityName: context, action: 'Create', details: `Added option: ${value}`, userName });
+    },
+    update: async (id: string, updates: Partial<DropdownOption>, userName?: string) => {
+        const { error } = await supabase.from('dropdown_options').update(updates).eq('id', id);
+        if (error) throw error;
+        // Could log update here
     },
     delete: async (id: string, context: string, value: string, userName?: string) => {
         const { error } = await supabase.from('dropdown_options').delete().eq('id', id);
@@ -680,7 +686,6 @@ export const dropdownApi = {
         addHistoryEntry({ entityType: 'Settings', entityName: context, action: 'Delete', details: `Removed option: ${value}`, userName });
     },
     reorder: async (items: { id: string, order_index: number }[]) => {
-        // Batch updates are better but upsert works well for list of updates
         const updates = items.map(item => 
             supabase.from('dropdown_options').update({ order_index: item.order_index }).eq('id', item.id)
         );

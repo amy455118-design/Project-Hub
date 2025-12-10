@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DropdownOption } from '../../types';
 import { dropdownApi, generateUUID } from '../../api';
-import { TrashIcon, PlusIcon, ListIcon } from '../icons';
+import { TrashIcon, PlusIcon, ListIcon, CheckIcon } from '../icons';
 import { ConfirmDeleteModal } from '../ui/ConfirmDeleteModal';
 
 interface ConfigurationMenusViewProps {
@@ -18,6 +18,67 @@ const CONTEXTS = [
     { key: 'project_status', label: 'Project Status' },
     { key: 'security_keys', label: 'Security Keys' },
 ];
+
+const COLORS = [
+    { name: 'Red', class: 'bg-latte-red text-white dark:bg-mocha-red dark:text-mocha-crust' },
+    { name: 'Peach', class: 'bg-latte-peach text-white dark:bg-mocha-peach dark:text-mocha-crust' },
+    { name: 'Yellow', class: 'bg-latte-yellow text-white dark:bg-mocha-yellow dark:text-mocha-crust' },
+    { name: 'Green', class: 'bg-latte-green text-white dark:bg-mocha-green dark:text-mocha-crust' },
+    { name: 'Teal', class: 'bg-latte-teal text-white dark:bg-mocha-teal dark:text-mocha-crust' },
+    { name: 'Sky', class: 'bg-latte-sky text-white dark:bg-mocha-sky dark:text-mocha-crust' },
+    { name: 'Blue', class: 'bg-latte-blue text-white dark:bg-mocha-blue dark:text-mocha-crust' },
+    { name: 'Mauve', class: 'bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust' },
+    { name: 'Lavender', class: 'bg-latte-lavender text-white dark:bg-mocha-lavender dark:text-mocha-crust' },
+    { name: 'Gray', class: 'bg-latte-surface2 text-white dark:bg-mocha-surface2 dark:text-mocha-text' },
+];
+
+const ColorPicker = ({ selectedColor, onChange }: { selectedColor?: string, onChange: (color: string) => void }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    return (
+        <div className="relative" ref={wrapperRef}>
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className={`w-6 h-6 rounded-full border border-latte-surface2 dark:border-mocha-surface2 flex items-center justify-center transition-transform hover:scale-110 ${selectedColor || 'bg-transparent'}`}
+            >
+                {!selectedColor && <span className="text-xs text-latte-subtext0 dark:text-mocha-subtext0">?</span>}
+            </button>
+            {isOpen && (
+                <div className="absolute top-8 left-0 z-50 p-2 bg-latte-mantle dark:bg-mocha-mantle rounded-lg shadow-xl border border-latte-surface1 dark:border-mocha-surface1 grid grid-cols-5 gap-2 w-48">
+                    {COLORS.map((c) => (
+                        <button
+                            key={c.name}
+                            type="button"
+                            onClick={() => { onChange(c.class); setIsOpen(false); }}
+                            className={`w-6 h-6 rounded-full ${c.class} hover:scale-110 transition-transform`}
+                            title={c.name}
+                        />
+                    ))}
+                    <button
+                        type="button"
+                        onClick={() => { onChange(''); setIsOpen(false); }}
+                        className="w-6 h-6 rounded-full border border-latte-surface2 dark:border-mocha-surface2 bg-transparent hover:scale-110 transition-transform flex items-center justify-center"
+                        title="None"
+                    >
+                        <span className="text-[10px] text-latte-subtext0 dark:text-mocha-subtext0">X</span>
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
 
 interface MenuConfigCardProps {
     contextKey: string;
@@ -35,6 +96,7 @@ const MenuConfigCard: React.FC<MenuConfigCardProps> = ({
     userName 
 }) => {
     const [newValue, setNewValue] = useState('');
+    const [newColor, setNewColor] = useState('');
     const [localOptions, setLocalOptions] = useState<DropdownOption[]>([]);
     const [optionToDelete, setOptionToDelete] = useState<DropdownOption | null>(null);
     const dragItem = useRef<number | null>(null);
@@ -50,7 +112,9 @@ const MenuConfigCard: React.FC<MenuConfigCardProps> = ({
         if (!newValue.trim()) return;
         
         const valueToAdd = newValue.trim();
+        const colorToAdd = newColor;
         setNewValue(''); // Clear input immediately
+        setNewColor('');
 
         // Optimistic Update
         const tempId = generateUUID();
@@ -59,19 +123,20 @@ const MenuConfigCard: React.FC<MenuConfigCardProps> = ({
             id: tempId,
             context: contextKey,
             value: valueToAdd,
-            order_index: maxOrder + 1
+            order_index: maxOrder + 1,
+            color: colorToAdd
         };
 
         setLocalOptions(prev => [...prev, newOption]);
 
         try {
-            await dropdownApi.add(contextKey, valueToAdd, userName, tempId);
-            // The Realtime subscription will eventually replace this optimistic item with the real DB item
+            await dropdownApi.add(contextKey, valueToAdd, colorToAdd, userName, tempId);
         } catch (error) {
             console.error("Failed to add option", error);
             // Revert on failure
             setLocalOptions(prev => prev.filter(o => o.id !== tempId));
             setNewValue(valueToAdd);
+            setNewColor(colorToAdd);
         }
     };
 
@@ -94,6 +159,15 @@ const MenuConfigCard: React.FC<MenuConfigCardProps> = ({
         } catch (error) {
             console.error("Failed to delete option", error);
             setLocalOptions(previousOptions); // Revert
+        }
+    };
+
+    const handleUpdateColor = async (id: string, color: string) => {
+        setLocalOptions(prev => prev.map(o => o.id === id ? { ...o, color } : o));
+        try {
+            await dropdownApi.update(id, { color }, userName);
+        } catch (e) {
+            console.error("Failed to update color", e);
         }
     };
 
@@ -140,7 +214,8 @@ const MenuConfigCard: React.FC<MenuConfigCardProps> = ({
                     {t[contextLabel] || contextLabel}
                 </h3>
                 
-                <div className="flex gap-2 mb-4">
+                <div className="flex gap-2 mb-4 items-center">
+                    <ColorPicker selectedColor={newColor} onChange={setNewColor} />
                     <input 
                         type="text" 
                         value={newValue} 
@@ -175,6 +250,7 @@ const MenuConfigCard: React.FC<MenuConfigCardProps> = ({
                         >
                             <div className="flex items-center gap-3">
                                 <ListIcon className="w-4 h-4 text-latte-subtext0 dark:text-mocha-subtext0 cursor-grab" />
+                                <ColorPicker selectedColor={opt.color} onChange={(c) => handleUpdateColor(opt.id, c)} />
                                 <span className="text-sm text-latte-text dark:text-mocha-text">{opt.value}</span>
                             </div>
                             <button 
@@ -184,7 +260,7 @@ const MenuConfigCard: React.FC<MenuConfigCardProps> = ({
                                     e.stopPropagation();
                                     handleDeleteClick(opt);
                                 }}
-                                onMouseDown={(e) => e.stopPropagation()} // Prevent drag start stealing focus
+                                onMouseDown={(e) => e.stopPropagation()}
                                 title="Delete"
                                 className="text-latte-red dark:text-mocha-red p-1 hover:bg-latte-surface2 dark:hover:bg-mocha-surface2 rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                             >

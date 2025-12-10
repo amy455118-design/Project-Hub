@@ -19,6 +19,7 @@ interface ProjectCardProps {
     onEdit?: (p: Project) => void;
     onStatusToggle?: (p: Project) => void;
     onHistoryClick?: (p: Project) => void;
+    statusColorMap?: Record<string, string>;
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ 
@@ -29,17 +30,27 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
     changedFields = [], 
     onEdit, 
     onStatusToggle, 
-    onHistoryClick 
+    onHistoryClick,
+    statusColorMap
 }) => {
     
     const getStatusColor = (status: ProjectStatus) => {
+        // Use dynamic color from map if available
+        if (statusColorMap && statusColorMap[status]) {
+            // Apply hover effect if interactive, but careful not to break the string if it contains hover classes already
+            // Usually the picker returns fixed background/text classes. We can wrap it.
+            // But simple approach: just use it.
+            return statusColorMap[status];
+        }
+
+        // Fallback
         switch (status) {
-            case 'Active': return 'bg-latte-green/20 text-latte-green dark:bg-mocha-green/20 dark:text-mocha-green hover:bg-latte-green/30 dark:hover:bg-mocha-green/30';
-            case 'In Progress': return 'bg-latte-blue/20 text-latte-blue dark:bg-mocha-blue/20 dark:text-mocha-blue hover:bg-latte-blue/30 dark:hover:bg-mocha-blue/30';
-            case 'Paused': return 'bg-latte-peach/20 text-latte-peach dark:bg-mocha-peach/20 dark:text-mocha-peach hover:bg-latte-peach/30 dark:hover:bg-mocha-peach/30';
-            case 'Pending': return 'bg-latte-yellow/20 text-latte-yellow dark:bg-mocha-yellow/20 dark:text-mocha-yellow hover:bg-latte-yellow/30 dark:hover:bg-mocha-yellow/30';
-            case 'Deactivated': return 'bg-latte-red/20 text-latte-red dark:bg-mocha-red/20 dark:text-mocha-red hover:bg-latte-red/30 dark:hover:bg-mocha-red/30';
-            case 'Broad': return 'bg-latte-mauve/20 text-latte-mauve dark:bg-mocha-mauve/20 dark:text-mocha-mauve hover:bg-latte-mauve/30 dark:hover:bg-mocha-mauve/30';
+            case 'Active': return 'bg-latte-green/20 text-latte-green dark:bg-mocha-green/20 dark:text-mocha-green';
+            case 'In Progress': return 'bg-latte-blue/20 text-latte-blue dark:bg-mocha-blue/20 dark:text-mocha-blue';
+            case 'Paused': return 'bg-latte-peach/20 text-latte-peach dark:bg-mocha-peach/20 dark:text-mocha-peach';
+            case 'Pending': return 'bg-latte-yellow/20 text-latte-yellow dark:bg-mocha-yellow/20 dark:text-mocha-yellow';
+            case 'Deactivated': return 'bg-latte-red/20 text-latte-red dark:bg-mocha-red/20 dark:text-mocha-red';
+            case 'Broad': return 'bg-latte-mauve/20 text-latte-mauve dark:bg-mocha-mauve/20 dark:text-mocha-mauve';
             default: return 'bg-latte-surface1 dark:bg-mocha-surface1';
         }
     };
@@ -75,7 +86,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                             }
                         }} 
                         disabled={variant !== 'interactive'}
-                        className={`px-2 py-1 text-[10px] font-bold rounded-full transition-colors uppercase tracking-wider ${getStatusColor(project.status)} ${isChanged('status') ? 'ring-2 ring-latte-yellow dark:ring-mocha-yellow' : ''}`}
+                        className={`px-2 py-1 text-[10px] font-bold rounded-full transition-colors uppercase tracking-wider ${getStatusColor(project.status)} ${isChanged('status') ? 'ring-2 ring-latte-yellow dark:ring-mocha-yellow' : ''} hover:opacity-80`}
                     >
                         {t[`status${project.status.replace(/\s/g, '')}`] || project.status}
                     </button>

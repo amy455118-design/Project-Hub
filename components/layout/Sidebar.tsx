@@ -1,4 +1,6 @@
+
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { View } from '../../types';
 import { ProjectIcon, DomainIcon, ProfileIcon, PageIcon, BMIcon, MessageSquareIcon, UsersIcon, ChevronsRightIcon, ChevronsLeftIcon, MtLogoIcon, CodeIcon } from '../icons';
 
@@ -13,7 +15,6 @@ const navItems = [
 ];
 
 interface SidebarProps {
-    t: any;
     view: View;
     setView: (view: View) => void;
     isCollapsed: boolean;
@@ -22,7 +23,9 @@ interface SidebarProps {
     onLogoClick: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ t, view, setView, isCollapsed, setIsCollapsed, logoSrc, onLogoClick }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ view, setView, isCollapsed, setIsCollapsed, logoSrc, onLogoClick }) => {
+    const { t } = useTranslation();
+
     return (
         <nav className={`bg-latte-mantle dark:bg-mocha-mantle p-4 flex flex-col border-r border-latte-surface0 dark:border-mocha-surface0 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
             <div className="flex-1 overflow-y-auto">
@@ -30,7 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ t, view, setView, isCollapsed,
                     <button
                         onClick={onLogoClick}
                         className="p-1 rounded-md hover:bg-latte-surface0 dark:hover:bg-mocha-surface0 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-latte-mantle dark:focus:ring-offset-mocha-mantle focus:ring-latte-mauve dark:focus:ring-mocha-mauve"
-                        aria-label={t.updateLogo}
+                        aria-label={t('updateLogo')}
                     >
                         {logoSrc ? (
                             <img src={logoSrc} alt="Custom Logo" className="h-8 w-auto" />
@@ -50,7 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ t, view, setView, isCollapsed,
                                     }`}
                             >
                                 <item.icon className="w-6 h-6 flex-shrink-0" />
-                                {!isCollapsed && <span>{t[item.labelKey as keyof typeof t]}</span>}
+                                {!isCollapsed && <span>{t(item.labelKey)}</span>}
                             </button>
                         </li>
                     ))}
@@ -66,7 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ t, view, setView, isCollapsed,
                             }`}
                     >
                         <CodeIcon className="w-6 h-6 flex-shrink-0" />
-                        {!isCollapsed && <span>{t.apiAccess || 'API Access'}</span>}
+                        {!isCollapsed && <span>{t('apiAccess')}</span>}
                     </button>
                 </div>
             </div>

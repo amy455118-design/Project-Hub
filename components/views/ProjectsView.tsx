@@ -145,6 +145,14 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
             .map(o => ({ value: o.value, label: t[o.value] || o.value }))
     , [dropdownOptions, t]);
 
+    const statusColorMap = useMemo(() => {
+        const map: Record<string, string> = {};
+        (dropdownOptions || []).filter(o => o.context === 'project_status').forEach(o => {
+            if (o.color) map[o.value] = o.color;
+        });
+        return map;
+    }, [dropdownOptions]);
+
 
     const filteredProjects = useMemo(() => {
         return projects.filter(p => {
@@ -196,6 +204,14 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
         return statusMap;
     }, [filteredProjects, statusOptions]);
 
+    const orderedStatuses = useMemo(() => {
+        const definedStatuses = statusOptions.map(o => o.value);
+        const usedStatuses = Object.keys(projectsByStatus);
+        // Add any statuses that are used by projects but not in the defined list (legacy or rogue data)
+        const extraStatuses = usedStatuses.filter(s => !definedStatuses.includes(s));
+        return [...definedStatuses, ...extraStatuses];
+    }, [statusOptions, projectsByStatus]);
+
 
     const handleSave = (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
         onSaveProject(projectData);
@@ -240,14 +256,18 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
 
     // Simplified toggle for standard flows (this logic might need to be dynamic or removed if fully custom statuses are used, but keeping simple loop for now based on index)
     const handleStatusToggle = (project: Project) => {
-        const currentIndex = statusOptions.findIndex(s => s.value === project.status);
-        if (currentIndex !== -1) {
-            const nextIndex = (currentIndex + 1) % statusOptions.length;
+        // If statusOptions is available, use it to cycle
+        if (statusOptions.length > 0) {
+            const currentIndex = statusOptions.findIndex(s => s.value === project.status);
+            // If current status is not in options (rogue), default to first option
+            const nextIndex = (currentIndex === -1) ? 0 : (currentIndex + 1) % statusOptions.length;
             onSaveProject({ ...project, status: statusOptions[nextIndex].value });
         }
     };
 
     const getStatusColor = (status: ProjectStatus) => {
+        if (statusColorMap[status]) return statusColorMap[status];
+
         // Fallback colors for known statuses, default for custom
         switch (status) {
             case 'Active': return 'bg-latte-green/20 text-latte-green dark:bg-mocha-green/20 dark:text-mocha-green hover:bg-latte-green/30 dark:hover:bg-mocha-green/30';
@@ -296,6 +316,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
                     lookups={cardLookups} 
                     variant="static" 
                     changedFields={changedFields}
+                    statusColorMap={statusColorMap}
                 />
             </div>
         );
@@ -415,7 +436,6 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
 
             {showFilters && (
                 <div className="bg-latte-surface0 dark:bg-mocha-surface0 p-4 rounded-xl mb-6 shadow-sm">
-                    {/* ... (Filter UI remains unchanged) ... */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                              <label className="block text-xs font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.countries}</label>
@@ -495,14 +515,20 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
                     </div>
                 ) : (
                     <div className="space-y-8">
-                        {statusOptions.map(statusOption => {
-                            const projectsForStatus = projectsByStatus[statusOption.value];
+                        {orderedStatuses.map(status => {
+                            const projectsForStatus = projectsByStatus[status];
                             if (!projectsForStatus || projectsForStatus.length === 0) return null;
+                            
+                            const label = statusOptions.find(o => o.value === status)?.label || t[`status${status.replace(/\s/g, '')}`] || status;
+                            
+                            // Determine color for the header badge
+                            const headerColor = statusColorMap[status] || getStatusColor(status);
+
                             return (
-                                 <div key={statusOption.value}>
+                                 <div key={status}>
                                     <h2 className="text-xl font-bold mb-3">
-                                         <span className={`px-3 py-1.5 text-base font-bold rounded-full ${getStatusColor(statusOption.value)}`}>
-                                            {t[`status${statusOption.value.replace(/\s/g, '')}`] || statusOption.value} ({projectsForStatus.length})
+                                         <span className={`px-3 py-1.5 text-base font-bold rounded-full ${headerColor}`}>
+                                            {label} ({projectsForStatus.length})
                                         </span>
                                     </h2>
                                     {viewMode === 'grid' ? (
@@ -516,6 +542,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = (props) => {
                                                     onEdit={handleEditClick} 
                                                     onStatusToggle={handleStatusToggle} 
                                                     onHistoryClick={handleDateClick}
+                                                    statusColorMap={statusColorMap}
                                                 />
                                             ))}
                                         </div>

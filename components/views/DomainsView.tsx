@@ -1,17 +1,16 @@
 
-
 import React, { useState, useMemo } from 'react';
-import { Domain, Partnership, Subdomain, Project } from '../../types';
-import { DomainViewMode } from '../../types';
-import { DomainList } from './DomainList';
+import { useTranslation } from 'react-i18next';
+import { Domain, Partnership, Subdomain, Project, DomainViewMode } from '../../types';
+import { DomainList } from './DomainList'; // Legacy list, might use parts or replace
 import { AddDomainModal } from '../modals/AddDomainModal';
 import { ConfirmDeleteModal } from '../ui/ConfirmDeleteModal';
 import { PlusIcon, LayoutGridIcon, ListIcon, ExternalLinkIcon, EditIcon } from '../icons';
 import { EntityHistory } from './EntityHistory';
 import { ToggleSwitch } from '../ui/ToggleSwitch';
+import { DomainCard } from '../cards/DomainCard';
 
 interface DomainsViewProps {
-    t: any;
     domains: Domain[];
     partnerships: Partnership[];
     projects: Project[];
@@ -28,7 +27,8 @@ interface DomainsViewProps {
     setViewMode: React.Dispatch<React.SetStateAction<DomainViewMode>>;
 }
 
-export const DomainsView: React.FC<DomainsViewProps> = ({ t, domains, partnerships, projects, onSaveDomain, onDeleteDomain, onToggleDomainActive, onToggleSubdomainActive, getCountryName, getLanguageName, countryOptions, languageOptions, projectOptions, viewMode, setViewMode }) => {
+export const DomainsView: React.FC<DomainsViewProps> = ({ domains, partnerships, projects, onSaveDomain, onDeleteDomain, onToggleDomainActive, onToggleSubdomainActive, getCountryName, getLanguageName, countryOptions, languageOptions, projectOptions, viewMode, setViewMode }) => {
+    const { t } = useTranslation();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingDomain, setEditingDomain] = useState<Domain | null>(null);
     const [domainToDelete, setDomainToDelete] = useState<Domain | null>(null);
@@ -63,82 +63,226 @@ export const DomainsView: React.FC<DomainsViewProps> = ({ t, domains, partnershi
         }
     };
 
-    const { activeDomains, inactiveParentDomains, inactiveSubdomains } = useMemo(() => {
-        const active: Domain[] = [];
-        const inactiveParent: Domain[] = [];
-        const inactiveSubs: (Subdomain & { parentDomain: Domain })[] = [];
+    // --- Grouping Logic ---
 
-        domains.forEach(d => {
-            if (d.isActive) {
-                const activeSubdomains = d.subdomains.filter(s => s.isActive);
-                const inactiveSubdomainsForThisDomain = d.subdomains.filter(s => !s.isActive);
-
-                // Always add to active list if parent is active, even if subdomains are empty
-                active.push({ ...d, subdomains: activeSubdomains });
-
-                inactiveSubs.push(...inactiveSubdomainsForThisDomain.map(s => ({ ...s, parentDomain: d })));
-            } else {
-                inactiveParent.push(d);
-            }
+    // Flatten all domains and subdomains for unified processing where needed
+    const flattenedAll = useMemo(() => {
+        const list: (Domain | (Subdomain & { parentDomain: Domain }))[] = [];
+        domains.forEach(domain => {
+            list.push(domain);
+            domain.subdomains.forEach(sub => {
+                list.push({ ...sub, parentDomain: domain });
+            });
         });
-
-        return { activeDomains: active, inactiveParentDomains: inactiveParent, inactiveSubdomains: inactiveSubs };
+        return list;
     }, [domains]);
 
-    const renderDomainSection = (domainList: Domain[], title: string) => {
-        if (!domainList || domainList.length === 0) return null;
+    const renderedContent = useMemo(() => {
+        if (activeTab === 'history') {
+            return <EntityHistory t={t} entityTypes={['Domain', 'Subdomain']} />;
+        }
 
-        const withPin = domainList.filter(d => d.hasPin);
-        const withoutPin = domainList.filter(d => !d.hasPin);
+        if (domains.length === 0) {
+            return (
+                <p className="text-center py-8 text-latte-subtext0 dark:text-mocha-subtext0">{t('noDomains')}</p>
+            );
+        }
 
+        // --- Workflow Mode (Default) ---
+        if (viewMode === 'workflow' || viewMode === 'grouped') { // 'grouped' alias for workflow for backward compatibility/default
+            // Groups: Active + Pin, Active + No Pin, Inactive
+            const activeWithPin: (Domain | (Subdomain & { parentDomain: Domain }))[] = [];
+            const activeNoPin: (Domain | (Subdomain & { parentDomain: Domain }))[] = [];
+            const inactive: (Domain | (Subdomain & { parentDomain: Domain }))[] = [];
+
+            // We iterate over MAIN DOMAINS only for top level? 
+            // The prompt implies displaying "Cards" which usually means the assets themselves.
+            // If a domain has subdomains, they are assets too.
+            // Let's use the flattened list but filter based on the logic.
+            // Logic:
+            // Group 1: Active + Has PIN
+            // Group 2: Active + No PIN
+            // Group 3: Inactive
+            
+            flattenedAll.forEach(item => {
+                const isSub = 'parentDomain' in item;
+                // For subdomains, 'hasPin' usually comes from parent? Or logic says "Has PIN". Domain interface has 'hasPin'. Subdomain doesn't explicitly have 'hasPin' in types.ts provided earlier, but let's check.
+                // Types.ts: Subdomain doesn't have hasPin. Domain has.
+                // So if it's a subdomain, does it inherit PIN status? Usually yes for AdSense.
+                const hasPin = isSub ? (item as any).parentDomain.hasPin : (item as Domain).hasPin;
+                
+                if (!item.isActive) {
+                    inactive.push(item);
+                } else if (hasPin) {
+                    activeWithPin.push(item);
+                } else {
+                    activeNoPin.push(item);
+                }
+            });
+
+            return (
+                <div className="space-y-8">
+                    {activeWithPin.length > 0 && (
+                        <div>
+                            <h3 className="text-lg font-bold text-latte-green dark:text-mocha-green mb-4 border-b border-latte-surface1 dark:border-mocha-surface1 pb-2">
+                                {t('withPin')} ({activeWithPin.length})
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {activeWithPin.map(item => (
+                                    <DomainCard 
+                                        key={item.id} 
+                                        domain={item} 
+                                        t={t} 
+                                        onEdit={handleEditClick} 
+                                        onDelete={setDomainToDelete} 
+                                        onToggleActive={('parentDomain' in item) ? (id, a) => onToggleSubdomainActive((item as any).parentDomain.id, id, a) : onToggleDomainActive}
+                                        getCountryName={getCountryName}
+                                        getLanguageName={getLanguageName}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeNoPin.length > 0 && (
+                        <div>
+                            <h3 className="text-lg font-bold text-latte-peach dark:text-mocha-peach mb-4 border-b border-latte-surface1 dark:border-mocha-surface1 pb-2">
+                                {t('withoutPin')} ({activeNoPin.length})
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {activeNoPin.map(item => (
+                                    <DomainCard 
+                                        key={item.id} 
+                                        domain={item} 
+                                        t={t} 
+                                        onEdit={handleEditClick} 
+                                        onDelete={setDomainToDelete} 
+                                        onToggleActive={('parentDomain' in item) ? (id, a) => onToggleSubdomainActive((item as any).parentDomain.id, id, a) : onToggleDomainActive}
+                                        getCountryName={getCountryName}
+                                        getLanguageName={getLanguageName}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {inactive.length > 0 && (
+                        <div>
+                            <h3 className="text-lg font-bold text-latte-overlay1 dark:text-mocha-overlay1 mb-4 border-b border-latte-surface1 dark:border-mocha-surface1 pb-2">
+                                {t('inactiveItems')} ({inactive.length})
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 opacity-75">
+                                {inactive.map(item => (
+                                    <DomainCard 
+                                        key={item.id} 
+                                        domain={item} 
+                                        t={t} 
+                                        onEdit={handleEditClick} 
+                                        onDelete={setDomainToDelete} 
+                                        onToggleActive={('parentDomain' in item) ? (id, a) => onToggleSubdomainActive((item as any).parentDomain.id, id, a) : onToggleDomainActive}
+                                        getCountryName={getCountryName}
+                                        getLanguageName={getLanguageName}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // --- Language Mode ---
+        if (viewMode === 'language') {
+            const groupedByLang = flattenedAll.reduce((acc, item) => {
+                const lang = item.language;
+                if (!acc[lang]) acc[lang] = [];
+                acc[lang].push(item);
+                return acc;
+            }, {} as Record<string, typeof flattenedAll>);
+
+            return (
+                <div className="space-y-8">
+                    {Object.keys(groupedByLang).sort().map(lang => (
+                        <div key={lang}>
+                            <h3 className="text-lg font-bold text-latte-blue dark:text-mocha-blue mb-4 border-b border-latte-surface1 dark:border-mocha-surface1 pb-2">
+                                {getLanguageName(lang)} ({groupedByLang[lang].length})
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {groupedByLang[lang].map(item => (
+                                    <DomainCard 
+                                        key={item.id} 
+                                        domain={item} 
+                                        t={t} 
+                                        onEdit={handleEditClick} 
+                                        onDelete={setDomainToDelete} 
+                                        onToggleActive={('parentDomain' in item) ? (id, a) => onToggleSubdomainActive((item as any).parentDomain.id, id, a) : onToggleDomainActive}
+                                        getCountryName={getCountryName}
+                                        getLanguageName={getLanguageName}
+                                        showPinBadge={true} // Show pin badge since not grouped by it
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+
+        // --- Ungrouped Mode (Flat) ---
         return (
-            <div className="mb-8">
-                {title && <h2 className="text-2xl font-bold text-latte-text dark:text-mocha-text mb-4 border-b-2 border-latte-surface1 dark:border-mocha-surface1 pb-2">{title}</h2>}
-                {withPin.length > 0 && (
-                    <div className="mb-8">
-                        <h3 className="text-lg font-semibold text-latte-green dark:text-mocha-green mb-3">{t.withPin} ({withPin.length})</h3>
-                        <DomainList
-                            domains={withPin} partnerships={partnerships} viewMode={viewMode} t={t} handleEditClick={handleEditClick}
-                            setDomainToDelete={setDomainToDelete} getCountryName={getCountryName}
-                            getLanguageName={getLanguageName} handleToggleActive={onToggleDomainActive}
-                            handleToggleSubdomainActive={onToggleSubdomainActive}
-                        />
-                    </div>
-                )}
-                {withoutPin.length > 0 && (
-                    <div>
-                        <h3 className="text-lg font-semibold text-latte-peach dark:text-mocha-peach mb-3">{t.withoutPin} ({withoutPin.length})</h3>
-                        <DomainList
-                            domains={withoutPin} partnerships={partnerships} viewMode={viewMode} t={t} handleEditClick={handleEditClick}
-                            setDomainToDelete={setDomainToDelete} getCountryName={getCountryName}
-                            getLanguageName={getLanguageName} handleToggleActive={onToggleDomainActive}
-                            handleToggleSubdomainActive={onToggleSubdomainActive}
-                        />
-                    </div>
-                )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {flattenedAll.map(item => (
+                    <DomainCard 
+                        key={item.id} 
+                        domain={item} 
+                        t={t} 
+                        onEdit={handleEditClick} 
+                        onDelete={setDomainToDelete} 
+                        onToggleActive={('parentDomain' in item) ? (id, a) => onToggleSubdomainActive((item as any).parentDomain.id, id, a) : onToggleDomainActive}
+                        getCountryName={getCountryName}
+                        getLanguageName={getLanguageName}
+                        showPinBadge={true}
+                    />
+                ))}
             </div>
         );
-    };
+
+    }, [activeTab, domains, flattenedAll, viewMode, t, getCountryName, getLanguageName]);
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-latte-text dark:text-mocha-text">{t.domains}</h1>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <h1 className="text-3xl font-bold text-latte-text dark:text-mocha-text">{t('domains')}</h1>
                 <div className="flex items-center space-x-4">
-                    <div className="flex items-center bg-latte-surface0 dark:bg-mocha-surface0 rounded-lg p-1">
+                    {/* View Mode Selector */}
+                    <div className="bg-latte-surface0 dark:bg-mocha-surface0 rounded-lg p-1 flex">
                         <button
-                            onClick={() => setViewMode('grouped')} title={t.viewGrouped}
-                            className={`p-2 rounded-md transition-colors ${viewMode === 'grouped' ? 'bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust' : 'text-latte-subtext1 dark:text-mocha-subtext1 hover:bg-latte-surface1 dark:hover:bg-mocha-surface1'}`}
-                        ><LayoutGridIcon className="w-5 h-5" /></button>
+                            onClick={() => setViewMode('workflow')}
+                            title={t('viewGrouped') || "Workflow View"}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'workflow' || viewMode === 'grouped' ? 'bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust' : 'text-latte-subtext1 dark:text-mocha-subtext1 hover:bg-latte-surface1 dark:hover:bg-mocha-surface1'}`}
+                        >
+                            Workflow
+                        </button>
                         <button
-                            onClick={() => setViewMode('language')} title={t.viewByLanguage}
-                            className={`p-2 rounded-md transition-colors ${viewMode === 'language' ? 'bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust' : 'text-latte-subtext1 dark:text-mocha-subtext1 hover:bg-latte-surface1 dark:hover:bg-mocha-surface1'}`}
-                        ><ListIcon className="w-5 h-5" /></button>
+                            onClick={() => setViewMode('language')}
+                            title={t('viewByLanguage') || "Language View"}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'language' ? 'bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust' : 'text-latte-subtext1 dark:text-mocha-subtext1 hover:bg-latte-surface1 dark:hover:bg-mocha-surface1'}`}
+                        >
+                            Language
+                        </button>
+                        <button
+                            onClick={() => setViewMode('ungrouped')}
+                            title="Flat View"
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'ungrouped' ? 'bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust' : 'text-latte-subtext1 dark:text-mocha-subtext1 hover:bg-latte-surface1 dark:hover:bg-mocha-surface1'}`}
+                        >
+                            All
+                        </button>
                     </div>
+
                     <button
                         onClick={handleAddClick}
                         className="flex items-center space-x-2 bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
-                    ><PlusIcon className="w-5 h-5" /><span>{t.addDomain}</span></button>
+                    ><PlusIcon className="w-5 h-5" /><span className="hidden sm:inline">{t('addDomain')}</span></button>
                 </div>
             </div>
 
@@ -147,83 +291,17 @@ export const DomainsView: React.FC<DomainsViewProps> = ({ t, domains, partnershi
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'list' ? 'bg-white dark:bg-mocha-surface2 shadow-sm text-latte-text dark:text-mocha-text' : 'text-latte-subtext0 dark:text-mocha-subtext0 hover:text-latte-text dark:hover:text-mocha-text'}`}
                     onClick={() => setActiveTab('list')}
                 >
-                    {t.list}
+                    {t('list')}
                 </button>
                 <button
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'history' ? 'bg-white dark:bg-mocha-surface2 shadow-sm text-latte-text dark:text-mocha-text' : 'text-latte-subtext0 dark:text-mocha-subtext0 hover:text-latte-text dark:hover:text-mocha-text'}`}
                     onClick={() => setActiveTab('history')}
                 >
-                    {t.history}
+                    {t('history')}
                 </button>
             </div>
 
-            {activeTab === 'list' ? (
-                <>
-                    {renderDomainSection(activeDomains, t.activeDomains)}
-
-                    {(inactiveParentDomains.length > 0 || inactiveSubdomains.length > 0) && (
-                        <div className="mb-12">
-                            <h2 className="text-2xl font-bold text-latte-text dark:text-mocha-text mb-4 border-b-2 border-latte-surface1 dark:border-mocha-surface1 pb-2">{t.inactiveItems}</h2>
-                            {inactiveParentDomains.length > 0 && (
-                                <div className="mb-8">
-                                    <h3 className="text-xl font-semibold text-latte-subtext0 dark:text-mocha-subtext0 mb-3">{t.inactiveDomains}</h3>
-                                    {renderDomainSection(inactiveParentDomains, "")}
-                                </div>
-                            )}
-                            {inactiveSubdomains.length > 0 && (
-                                <div className="mb-8">
-                                    <h3 className="text-xl font-semibold text-latte-subtext0 dark:text-mocha-subtext0 mb-3">{t.inactiveSubdomains}</h3>
-                                    {/* Manually rendering the table for inactive subdomains as in the original code to avoid complex refactoring of DomainList right now */}
-                                    <div className="bg-latte-crust dark:bg-mocha-crust p-4 rounded-xl shadow-md mt-2">
-                                        <table className="w-full text-left">
-                                            <thead className="border-b-2 border-latte-surface1 dark:border-mocha-surface1">
-                                                <tr>
-                                                    <th className="p-2 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.subdomainName}</th>
-                                                    <th className="p-2 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.parentDomain}</th>
-                                                    <th className="p-2 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.countries}</th>
-                                                    <th className="p-2 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1">{t.language}</th>
-                                                    <th className="p-2 text-sm font-semibold uppercase text-latte-subtext1 dark:text-mocha-subtext1 text-right">{t.actions}</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {inactiveSubdomains.map(sub => (
-                                                    <tr key={sub.id} className="border-b border-latte-surface0 dark:border-mocha-surface0 last:border-b-0">
-                                                        <td className="p-2 font-medium">{sub.name}</td>
-                                                        <td className="p-2 text-latte-subtext0 dark:text-mocha-subtext0">{sub.parentDomain.name}</td>
-                                                        <td className="p-2">{sub.countries.map(getCountryName).join(', ')}</td>
-                                                        <td className="p-2">{getLanguageName(sub.language)}</td>
-                                                        <td className="p-2 text-right">
-                                                            <div className="flex items-center justify-end space-x-1">
-                                                                {sub.planningSheetUrl && (
-                                                                    <a href={sub.planningSheetUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-md hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-latte-green dark:text-mocha-green" aria-label={`Planning Sheet for ${sub.name}`}>
-                                                                        <ExternalLinkIcon className="w-5 h-5" />
-                                                                    </a>
-                                                                )}
-                                                                <ToggleSwitch checked={sub.isActive} onChange={(checked) => onToggleSubdomainActive(sub.parentDomain.id, sub.id, checked)} />
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); handleEditClick(sub.parentDomain); }}
-                                                                    className="p-2 rounded-md hover:bg-latte-surface1 dark:hover:bg-mocha-surface1 text-latte-blue dark:text-mocha-blue"
-                                                                    aria-label={`Edit parent of ${sub.name}`}
-                                                                ><EditIcon className="w-5 h-5" /></button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {(activeDomains.length === 0 && inactiveParentDomains.length === 0 && inactiveSubdomains.length === 0) && (
-                        <p className="text-center py-8 text-latte-subtext0 dark:text-mocha-subtext0">{t.noDomains}</p>
-                    )}
-                </>
-            ) : (
-                <EntityHistory t={t} entityTypes={['Domain', 'Subdomain']} />
-            )}
+            {renderedContent}
 
             <AddDomainModal
                 isOpen={isModalOpen} onClose={handleCloseModal} onSave={handleSaveDomain}
@@ -235,8 +313,8 @@ export const DomainsView: React.FC<DomainsViewProps> = ({ t, domains, partnershi
                 isOpen={!!domainToDelete}
                 onClose={() => setDomainToDelete(null)}
                 onConfirm={handleDeleteConfirm}
-                title={t.confirmDelete}
-                message={<>{t.areYouSureDelete} <strong className="text-latte-text dark:text-mocha-text">{domainToDelete?.name}</strong>?</>}
+                title={t('confirmDelete')}
+                message={<>{t('areYouSureDelete')} <strong className="text-latte-text dark:text-mocha-text">{domainToDelete?.name}</strong>?</>}
                 t={t}
             />
         </div>

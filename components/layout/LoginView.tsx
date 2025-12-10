@@ -1,4 +1,6 @@
+
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MtLogoIcon, LoginArtIcon } from '../icons';
 import { RegisterModal } from '../modals/RegisterModal';
 import { User } from '../../types';
@@ -6,11 +8,12 @@ import { User } from '../../types';
 interface LoginViewProps {
     onLogin: (user: string, pass: string) => Promise<void>;
     onRegister: (user: Omit<User, 'id'>) => Promise<void>;
-    t: any;
     error: string;
+    t?: any; // kept optional for compatibility if passed
 }
 
-export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, t, error }) => {
+export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, error }) => {
+    const { t } = useTranslation();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showMainConstellation, setShowMainConstellation] = useState(true);
@@ -31,12 +34,12 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, t, er
                 <div className="w-full max-w-sm">
                     <div className="mb-8">
                         <MtLogoIcon className="h-12 w-auto mb-6" />
-                        <h1 className="text-4xl font-bold text-latte-text dark:text-mocha-text">{t.welcomeLogin}</h1>
-                        <p className="mt-2 text-latte-subtext1 dark:text-mocha-subtext1">{t.loginDescription}</p>
+                        <h1 className="text-4xl font-bold text-latte-text dark:text-mocha-text">{t('welcomeLogin')}</h1>
+                        <p className="mt-2 text-latte-subtext1 dark:text-mocha-subtext1">{t('loginDescription')}</p>
                     </div>
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
-                            <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.username}</label>
+                            <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t('username')}</label>
                             <input
                                 type="text"
                                 value={username}
@@ -46,7 +49,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, t, er
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t.password}</label>
+                            <label className="block text-sm font-medium text-latte-subtext1 dark:text-mocha-subtext1 mb-1">{t('password')}</label>
                             <input
                                 type="password"
                                 value={password}
@@ -62,7 +65,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, t, er
                                 disabled={isLoading}
                                 className="w-full px-4 py-2.5 rounded-lg bg-latte-mauve text-white dark:bg-mocha-mauve dark:text-mocha-crust font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
                             >
-                                {isLoading ? 'Logging in...' : t.login}
+                                {isLoading ? 'Logging in...' : t('login')}
                             </button>
                         </div>
                         <div className="text-center">
